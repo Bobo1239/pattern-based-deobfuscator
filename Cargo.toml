@@ -1,0 +1,11 @@
+[package]
+name = "unhappy-arxan"
+version = "0.1.0"
+authors = ["Boris-Chengbiao Zhou <bobo1239@web.de>"]
+
+[dependencies]
+capstone = "0.3.1"
+keystone = "0.9.0"
+goblin = "0.0.15"
+regex = "1.0.0"
+lazy_static = "1.0.0"
