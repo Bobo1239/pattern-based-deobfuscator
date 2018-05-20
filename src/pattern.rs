@@ -1,8 +1,24 @@
-#![allow(dead_code)]
-
 use std::fmt::{self, Display};
+use std::str::FromStr;
 
+use fnv::FnvHashSet;
+use keystone::{self, Arch, Keystone};
 use regex::Regex;
+
+lazy_static! {
+    static ref KEYSTONE: Keystone =
+        Keystone::new(Arch::X86, keystone::MODE_64).expect("Failed to initialize Keystone engine");
+}
+
+#[derive(Debug, Fail, PartialEq)]
+pub enum PatternError {
+    #[fail(display = "invalid variable type: {}", _0)]
+    InvalidVariableType(String),
+    #[fail(
+        display = "all variable instantiations either failed to assemble or their variable wasn't found"
+    )]
+    DetectionError,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Variable {
@@ -11,7 +27,7 @@ pub struct Variable {
 }
 
 impl Variable {
-    fn new(name: &str, typee: VariableType) -> Variable {
+    pub fn new(name: &str, typee: VariableType) -> Variable {
         Variable {
             name: name.to_string(),
             typee,
@@ -26,22 +42,131 @@ pub enum VariableType {
 }
 
 #[derive(Debug, PartialEq)]
-struct RegexPart();
-
-// fn add_instruction_to_regex(regex: &mut String) {
-
-// }
-
-#[derive(Debug, PartialEq)]
 pub struct InstructionPattern {
     pattern: String,
-    variables: Vec<Variable>, // ordered
+    variables: Vec<Variable>,
 }
 
-impl<'a> From<&'a str> for InstructionPattern {
-    fn from(s: &str) -> Self {
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Encoding(Vec<EncodingPart>);
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum EncodingPart {
+    Fixed(Vec<u8>),
+    Intermediate { length: u8, variable_name: String },
+}
+
+impl Encoding {
+    // TODO: this will output regex groups with conflicting names
+    pub fn to_regex(&self) -> String {
+        let mut regex = String::new();
+        for part in &self.0 {
+            match part {
+                EncodingPart::Fixed(bytes) => {
+                    for byte in bytes {
+                        regex += &format!(r"\x{:02x}", byte);
+                    }
+                }
+                EncodingPart::Intermediate {
+                    length,
+                    variable_name,
+                } => {
+                    regex += &format!("(?P<{}>", variable_name);
+                    for _ in 0..*length {
+                        regex.push('.');
+                    }
+                    regex.push(')');
+                }
+            }
+        }
+        regex
+    }
+}
+
+impl InstructionPattern {
+    pub fn find_encodings(&self) -> Result<Vec<Encoding>, PatternError> {
+        fn pattern_to_encodings(
+            pattern: &InstructionPattern,
+        ) -> Result<FnvHashSet<Encoding>, PatternError> {
+            fn detect_intermediate_len(encoded: &[u8]) -> Option<u8> {
+                match encoded {
+                    [_.., 0x0F] => Some(1),
+                    [_.., 0x0F, _] => Some(2),
+                    [_.., 0x0F, _, _, _] => Some(4),
+                    [_.., 0x0F, _, _, _, _, _, _, _] => Some(8),
+                    _ => None,
+                }
+            }
+            fn instantiate_and_detect_encoding(
+                pattern: &InstructionPattern,
+                instantiate_with: &str,
+            ) -> Option<Encoding> {
+                let instance = pattern
+                    .pattern
+                    .replace(&pattern.variables[0].to_string(), instantiate_with);
+                debug!("instance: {}", instance);
+                match KEYSTONE.asm(instance.to_string(), 0) {
+                    Err(error) => {
+                        warn!("assembly failed: {}", error);
+                        None
+                    }
+                    Ok(encoded) => {
+                        debug!("encoded:  {:x?}", encoded);
+                        detect_intermediate_len(&encoded.bytes).map(|intermediate_len| {
+                            let mut encoding = Vec::new();
+                            encoding.push(EncodingPart::Fixed(
+                                encoded.bytes[..(encoded.size - intermediate_len as u32) as usize]
+                                    .to_vec(),
+                            ));
+                            encoding.push(EncodingPart::Intermediate {
+                                length: intermediate_len,
+                                variable_name: pattern.variables[0].name.clone(),
+                            });
+                            Encoding(encoding)
+                        })
+                    }
+                }
+            }
+            assert!(pattern.variables.len() == 1);
+            let mut encodings = FnvHashSet::default();
+            // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
+            let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
+            for instantiation in &instantiations {
+                if let Some(encoding) = instantiate_and_detect_encoding(pattern, instantiation) {
+                    encodings.insert(encoding);
+                }
+            }
+            if encodings.is_empty() {
+                Err(PatternError::DetectionError)
+            } else {
+                Ok(encodings)
+            }
+        }
+        match self.variables.len() {
+            0 => match KEYSTONE
+                .asm(self.pattern.to_string(), 0)
+                .map(|asm| asm.bytes)
+            {
+                Ok(asm) => {
+                    let mut parts = Vec::new();
+                    parts.push(EncodingPart::Fixed(asm));
+                    let mut encodings = Vec::new();
+                    encodings.push(Encoding(parts));
+                    Ok(encodings)
+                }
+                Err(_) => Err(PatternError::DetectionError),
+            },
+            1 => pattern_to_encodings(self).map(|set| set.into_iter().collect()),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl FromStr for InstructionPattern {
+    type Err = PatternError;
+    fn from_str(s: &str) -> Result<InstructionPattern, PatternError> {
         lazy_static! {
-            static ref REGEX: Regex = Regex::new(r"\$(num|reg):(\w+)").unwrap();
+            static ref REGEX: Regex = Regex::new(r"\$(\w+):(\w+)").unwrap();
         }
 
         let mut vec = Vec::new();
@@ -52,7 +177,7 @@ impl<'a> From<&'a str> for InstructionPattern {
             let typee = match type_str {
                 "num" => VariableType::Number,
                 "reg" => VariableType::Register,
-                _ => unreachable!(),
+                typee => return Err(PatternError::InvalidVariableType(typee.to_string())),
             };
             let var = Variable { typee, name };
             if !vec.contains(&var) {
@@ -60,10 +185,10 @@ impl<'a> From<&'a str> for InstructionPattern {
             }
         }
 
-        InstructionPattern {
+        Ok(InstructionPattern {
             pattern: s.to_string(),
             variables: vec,
-        }
+        })
     }
 }
 
@@ -81,30 +206,32 @@ impl Display for Variable {
     }
 }
 
-// -> Vec<RegexPart> // different encodings e.g. depending on operand size
-// fn find_operand(instruction: &str, var: Variable) -> Option<> {
-
-// }
+// NOTE: This is only temporary
+pub fn encodings_to_regex(encodings: &[Encoding]) -> String {
+    let regexes: Vec<_> = encodings.iter().map(|enc| enc.to_regex()).collect();
+    format!("({})", regexes.join("|"))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use byteorder::LE;
+    use byteorder_ext::ByteOrderExt;
+    use regex::bytes::Regex;
 
     #[test]
     fn parse_instruction_pattern() {
         use super::VariableType::*;
         fn test(pattern: &str, variables: Vec<Variable>) {
             assert_eq!(
-                InstructionPattern::from(pattern),
-                InstructionPattern {
+                pattern.parse(),
+                Ok(InstructionPattern {
                     pattern: pattern.to_string(),
                     variables: variables,
-                }
+                })
             );
         }
-        fn var(name: &str, typee: VariableType) -> Variable {
-            Variable::new(name, typee)
-        }
+        let var = Variable::new;
 
         test("move eax, ebx", vec![]);
         test(
@@ -114,6 +241,51 @@ mod tests {
         test("move $reg:a, $reg:a", vec![var("a", Register)]);
         test("move eax, [$num:num1]", vec![var("num1", Number)]);
         test("move eax, [$num:42]", vec![var("42", Number)]);
-        test("move $n:a, $r:b", vec![]);
+        assert_eq!(
+            "move $n:a, $r:b".parse::<InstructionPattern>(),
+            Err(PatternError::InvalidVariableType("n".to_string()))
+        );
+    }
+
+    // TODO: add test which try all different encoding (according to intel manual); lea, add, ...
+    #[test]
+    fn instruction_patterns_to_regex_one_operand() {
+        let keystone = Keystone::new(Arch::X86, keystone::MODE_64).unwrap();
+
+        let test = |pattern: &str, should_match: Vec<(&str, u8, [Vec<u8>; 1])>| {
+            let instruction_pattern: InstructionPattern = pattern.parse().unwrap();
+
+            let regex = encodings_to_regex(&instruction_pattern.find_encodings().unwrap());
+            println!("Regex: {}", regex);
+            let regex = Regex::new(&(format!("^(?-u){}$", regex))).unwrap();
+
+            for (instruction, expected_size, [operand1]) in should_match {
+                let assembled = keystone.asm(instruction.to_string(), 0).unwrap();
+                assert_eq!(assembled.size as u8, expected_size);
+                match regex.captures(&assembled.bytes) {
+                    Some(captures) => {
+                        assert_eq!(captures.name("v1").unwrap().as_bytes(), &*operand1)
+                    }
+                    None => panic!("Didn't match pattern"),
+                }
+            }
+        };
+
+        test(
+            "lea eax, [rip + $num:v1]",
+            vec![
+                ("lea eax, [rip + 0xFFEEDDCC]", 6, [LE::u32_vec(0xFFEEDDCC)]),
+                ("lea eax, [rip + 0x14]", 6, [LE::i32_vec(0x14)]),
+                ("lea eax, [rip - 0x14]", 6, [LE::i32_vec(-0x14)]),
+            ],
+        );
+        test(
+            "lea rax, [rip + $num:v1]", // + REX.W prefix
+            vec![
+                ("lea rax, [rip + 0xFFEEDDCC]", 7, [LE::u32_vec(0xFFEEDDCC)]),
+                ("lea rax, [rip + 0x14]", 7, [LE::i32_vec(0x14)]),
+                ("lea rax, [rip - 0x14]", 7, [LE::i32_vec(-0x14)]),
+            ],
+        );
     }
 }
