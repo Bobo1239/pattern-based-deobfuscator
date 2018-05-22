@@ -13,7 +13,7 @@ log = "0.4.1"
 env_logger = "0.5.10"
 failure = "0.1.1"
 failure_derive = "0.1.1"
-fnv = "1.0.6"
+fxhash = "0.2.1"
 
 [dev-dependencies]
 capstone = "0.3.1"

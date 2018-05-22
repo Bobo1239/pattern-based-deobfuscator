@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-use fnv::FnvHashSet;
+use fxhash::FxHashSet;
 use regex::Regex;
 use KEYSTONE;
 
@@ -82,7 +82,7 @@ impl InstructionPattern {
     pub fn find_encodings(&self) -> Result<Vec<Encoding>, PatternError> {
         fn pattern_to_encodings(
             pattern: &InstructionPattern,
-        ) -> Result<FnvHashSet<Encoding>, PatternError> {
+        ) -> Result<FxHashSet<Encoding>, PatternError> {
             fn detect_intermediate_len(encoded: &[u8]) -> Option<u8> {
                 match encoded {
                     [_.., 0x0F] => Some(1),
@@ -124,7 +124,7 @@ impl InstructionPattern {
                 }
             }
             assert!(pattern.variables.len() == 1);
-            let mut encodings = FnvHashSet::default();
+            let mut encodings = FxHashSet::default();
             // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
             let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
             for instantiation in &instantiations {

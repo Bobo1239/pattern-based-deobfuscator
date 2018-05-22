@@ -11,7 +11,7 @@ extern crate failure;
 extern crate regex;
 #[macro_use]
 extern crate failure_derive;
-extern crate fnv;
+extern crate fxhash;
 
 #[cfg(test)]
 extern crate env_logger;
