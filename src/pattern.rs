@@ -2,13 +2,8 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 
 use fnv::FnvHashSet;
-use keystone::{self, Arch, Keystone};
 use regex::Regex;
-
-lazy_static! {
-    static ref KEYSTONE: Keystone =
-        Keystone::new(Arch::X86, keystone::MODE_64).expect("Failed to initialize Keystone engine");
-}
+use KEYSTONE;
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum PatternError {
@@ -115,7 +110,8 @@ impl InstructionPattern {
                         detect_intermediate_len(&encoded.bytes).map(|intermediate_len| {
                             let mut encoding = Vec::new();
                             encoding.push(EncodingPart::Fixed(
-                                encoded.bytes[..(encoded.size - intermediate_len as u32) as usize]
+                                encoded.bytes
+                                    [..(encoded.size - u32::from(intermediate_len)) as usize]
                                     .to_vec(),
                             ));
                             encoding.push(EncodingPart::Intermediate {
@@ -215,9 +211,6 @@ pub fn encodings_to_regex(encodings: &[Encoding]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use byteorder::LE;
-    use byteorder_ext::ByteOrderExt;
-    use regex::bytes::Regex;
 
     #[test]
     fn parse_instruction_pattern() {
@@ -244,48 +237,6 @@ mod tests {
         assert_eq!(
             "move $n:a, $r:b".parse::<InstructionPattern>(),
             Err(PatternError::InvalidVariableType("n".to_string()))
-        );
-    }
-
-    // TODO: add test which try all different encoding (according to intel manual); lea, add, ...
-    #[test]
-    fn instruction_patterns_to_regex_one_operand() {
-        let keystone = Keystone::new(Arch::X86, keystone::MODE_64).unwrap();
-
-        let test = |pattern: &str, should_match: Vec<(&str, u8, [Vec<u8>; 1])>| {
-            let instruction_pattern: InstructionPattern = pattern.parse().unwrap();
-
-            let regex = encodings_to_regex(&instruction_pattern.find_encodings().unwrap());
-            println!("Regex: {}", regex);
-            let regex = Regex::new(&(format!("^(?-u){}$", regex))).unwrap();
-
-            for (instruction, expected_size, [operand1]) in should_match {
-                let assembled = keystone.asm(instruction.to_string(), 0).unwrap();
-                assert_eq!(assembled.size as u8, expected_size);
-                match regex.captures(&assembled.bytes) {
-                    Some(captures) => {
-                        assert_eq!(captures.name("v1").unwrap().as_bytes(), &*operand1)
-                    }
-                    None => panic!("Didn't match pattern"),
-                }
-            }
-        };
-
-        test(
-            "lea eax, [rip + $num:v1]",
-            vec![
-                ("lea eax, [rip + 0xFFEEDDCC]", 6, [LE::u32_vec(0xFFEEDDCC)]),
-                ("lea eax, [rip + 0x14]", 6, [LE::i32_vec(0x14)]),
-                ("lea eax, [rip - 0x14]", 6, [LE::i32_vec(-0x14)]),
-            ],
-        );
-        test(
-            "lea rax, [rip + $num:v1]", // + REX.W prefix
-            vec![
-                ("lea rax, [rip + 0xFFEEDDCC]", 7, [LE::u32_vec(0xFFEEDDCC)]),
-                ("lea rax, [rip + 0x14]", 7, [LE::i32_vec(0x14)]),
-                ("lea rax, [rip - 0x14]", 7, [LE::i32_vec(-0x14)]),
-            ],
         );
     }
 }

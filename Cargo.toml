@@ -17,3 +17,4 @@ fnv = "1.0.6"
 
 [dev-dependencies]
 capstone = "0.3.1"
+quickcheck = "0.6.2"

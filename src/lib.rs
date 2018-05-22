@@ -1,4 +1,4 @@
-#![feature(never_type, slice_patterns)]
+#![feature(slice_patterns)]
 
 extern crate goblin;
 extern crate keystone;
@@ -16,8 +16,15 @@ extern crate fnv;
 #[cfg(test)]
 extern crate env_logger;
 
-mod byteorder_ext;
+pub mod byteorder_ext;
 pub mod pattern;
+
+use keystone::{Arch, Keystone};
+
+lazy_static! {
+    static ref KEYSTONE: Keystone =
+        Keystone::new(Arch::X86, keystone::MODE_64).expect("Failed to initialize Keystone engine");
+}
 
 #[cfg(test)]
 #[allow(dead_code)]
