@@ -72,10 +72,12 @@ fn quickcheck() {
             regex: Regex::new(
                 &(format!(
                     "^(?s-u){}$",
-                    encodings_to_regex(&InstructionPattern::from_str(pat)
-                        .unwrap()
-                        .find_encodings()
-                        .unwrap())
+                    encodings_to_regex(
+                        &InstructionPattern::from_str(pat)
+                            .unwrap()
+                            .find_encodings()
+                            .unwrap()
+                    )
                 )),
             ).unwrap(),
             blacklisted_widths: blacklisted,

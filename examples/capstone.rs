@@ -5,7 +5,7 @@ use capstone::prelude::*;
 use capstone::InsnDetail;
 
 fn main() {
-    let cs = Capstone::new()
+    let mut cs = Capstone::new()
         .x86()
         .mode(arch::x86::ArchMode::Mode64)
         .syntax(arch::x86::ArchSyntax::Intel)
@@ -28,10 +28,8 @@ fn main() {
                 0xFF, // 1111_1111 addr
             ],
             0x140C693BD,
-        ).unwrap()
-            .iter()
-            .next()
-            .unwrap();
+        ).unwrap();
+    let instruction = instruction.iter().next().unwrap();
 
     let detail: InsnDetail = cs.insn_detail(&instruction).unwrap();
     let arch_detail: ArchDetail = detail.arch_detail();
@@ -45,14 +43,8 @@ fn main() {
     let output: &[(&str, String)] = &[
         ("insn id:", format!("{:?}", instruction.id().0)),
         ("bytes:", format!("{:x?}", instruction.bytes())),
-        (
-            "read regs:",
-            reg_names(&cs, cs.read_register_ids(&instruction).unwrap()),
-        ),
-        (
-            "write regs:",
-            reg_names(&cs, cs.write_register_ids(&instruction).unwrap()),
-        ),
+        ("read regs:", reg_names(&cs, detail.regs_read())),
+        ("write regs:", reg_names(&cs, detail.regs_write())),
     ];
 
     for &(ref name, ref message) in output.iter() {
