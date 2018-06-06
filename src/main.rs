@@ -57,7 +57,7 @@ fn main() {
     };
 
     // TODO: disambiguate capture group names for the same variable name
-    let mut final_regex = "(?-u)".to_string();
+    let mut final_regex = "(?s-u)".to_string();
     for instruction in &database[0].0 {
         println!("instruction: {:?}", instruction);
         let pattern: InstructionPattern = instruction.parse().expect("Failed to parse pattern!");

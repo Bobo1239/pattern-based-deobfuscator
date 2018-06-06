@@ -12,6 +12,7 @@ extern crate regex;
 #[macro_use]
 extern crate failure_derive;
 extern crate fxhash;
+extern crate parking_lot;
 
 #[cfg(test)]
 extern crate env_logger;
@@ -19,11 +20,17 @@ extern crate env_logger;
 pub mod byteorder_ext;
 pub mod pattern;
 
-use keystone::{Arch, Keystone};
+use keystone::{Arch, AsmResult, Keystone};
+use parking_lot::Mutex;
 
-lazy_static! {
-    static ref KEYSTONE: Keystone =
-        Keystone::new(Arch::X86, keystone::MODE_64).expect("Failed to initialize Keystone engine");
+pub fn keystone_assemble(assembly: String) -> Result<AsmResult, keystone::Error> {
+    lazy_static! {
+        static ref KEYSTONE: Mutex<Keystone> = Mutex::new(
+            Keystone::new(Arch::X86, keystone::MODE_64)
+                .expect("Failed to initialize Keystone engine")
+        );
+    }
+    KEYSTONE.lock().asm(assembly, 0)
 }
 
 #[cfg(test)]

@@ -2,17 +2,17 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 
 use fxhash::FxHashSet;
+use keystone_assemble;
 use regex::Regex;
-use KEYSTONE;
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum PatternError {
     #[fail(display = "invalid variable type: {}", _0)]
     InvalidVariableType(String),
-    #[fail(
-        display = "all variable instantiations either failed to assemble or their variable wasn't found"
-    )]
+    #[fail(display = "detection of the variable in the assembled pattern failed")]
     DetectionError,
+    #[fail(display = "assembly of the pattern failed for all variable instantiations")]
+    AssemblyFailed,
 }
 
 #[derive(Debug, PartialEq)]
@@ -40,6 +40,12 @@ pub enum VariableType {
 pub struct InstructionPattern {
     pattern: String,
     variables: Vec<Variable>,
+}
+
+impl InstructionPattern {
+    pub fn pattern(&self) -> &str {
+        &self.pattern
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -83,27 +89,28 @@ impl InstructionPattern {
         fn pattern_to_encodings(
             pattern: &InstructionPattern,
         ) -> Result<FxHashSet<Encoding>, PatternError> {
-            fn detect_intermediate_len(encoded: &[u8]) -> Option<u8> {
+            fn detect_intermediate_len(encoded: &[u8]) -> Result<u8, PatternError> {
                 match encoded {
-                    [_.., 0x0F] => Some(1),
-                    [_.., 0x0F, _] => Some(2),
-                    [_.., 0x0F, _, _, _] => Some(4),
-                    [_.., 0x0F, _, _, _, _, _, _, _] => Some(8),
-                    _ => None,
+                    [_.., 0x0F] => Ok(1),
+                    [_.., 0x0F, _] => Ok(2),
+                    [_.., 0x0F, _, _, _] => Ok(4),
+                    [_.., 0x0F, _, _, _, _, _, _, _] => Ok(8),
+                    _ => Err(PatternError::DetectionError),
                 }
             }
+
             fn instantiate_and_detect_encoding(
                 pattern: &InstructionPattern,
                 instantiate_with: &str,
-            ) -> Option<Encoding> {
+            ) -> Result<Encoding, PatternError> {
                 let instance = pattern
                     .pattern
                     .replace(&pattern.variables[0].to_string(), instantiate_with);
                 debug!("instance: {}", instance);
-                match KEYSTONE.asm(instance.to_string(), 0) {
+                match keystone_assemble(instance) {
                     Err(error) => {
                         warn!("assembly failed: {}", error);
-                        None
+                        Err(PatternError::AssemblyFailed)
                     }
                     Ok(encoded) => {
                         debug!("encoded:  {:x?}", encoded);
@@ -123,26 +130,34 @@ impl InstructionPattern {
                     }
                 }
             }
-            assert!(pattern.variables.len() == 1);
+
+            assert!(pattern.variables.len() == 1); //FIXME
+
             let mut encodings = FxHashSet::default();
             // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
             let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
+            let mut assembly_failed = true;
             for instantiation in &instantiations {
-                if let Some(encoding) = instantiate_and_detect_encoding(pattern, instantiation) {
+                let result = instantiate_and_detect_encoding(pattern, instantiation);
+                if let Ok(encoding) = result {
                     encodings.insert(encoding);
+                } else if Err(PatternError::AssemblyFailed) != result {
+                    assembly_failed = false;
                 }
             }
+
             if encodings.is_empty() {
-                Err(PatternError::DetectionError)
+                if assembly_failed {
+                    Err(PatternError::AssemblyFailed)
+                } else {
+                    Err(PatternError::DetectionError)
+                }
             } else {
                 Ok(encodings)
             }
         }
         match self.variables.len() {
-            0 => match KEYSTONE
-                .asm(self.pattern.to_string(), 0)
-                .map(|asm| asm.bytes)
-            {
+            0 => match keystone_assemble(self.pattern.to_string()).map(|asm| asm.bytes) {
                 Ok(asm) => {
                     let mut parts = Vec::new();
                     parts.push(EncodingPart::Fixed(asm));
@@ -203,6 +218,7 @@ impl Display for Variable {
 }
 
 // NOTE: This is only temporary
+#[deprecated]
 pub fn encodings_to_regex(encodings: &[Encoding]) -> String {
     let regexes: Vec<_> = encodings.iter().map(|enc| enc.to_regex()).collect();
     format!("({})", regexes.join("|"))
