@@ -14,6 +14,9 @@ use unhappy_arxan::byteorder_ext::ByteOrderExt;
 use unhappy_arxan::keystone_assemble;
 use unhappy_arxan::pattern::*;
 
+const QUICKCHECK_TESTS: u64 = 10_000;
+const QUICKCHECK_MAX_TESTS: u64 = 10 * QUICKCHECK_TESTS;
+
 fn test(pattern: &str, should_match: Vec<(&str, u8, &[Vec<u8>])>) {
     let instruction_pattern: InstructionPattern = pattern.parse().unwrap();
 
@@ -82,7 +85,9 @@ fn quickcheck() {
             ).unwrap(),
             blacklisted_widths: blacklisted,
         });
-    let mut qc = QuickCheck::new().tests(1_000_000);
+    let mut qc = QuickCheck::new()
+        .tests(QUICKCHECK_TESTS)
+        .max_tests(QUICKCHECK_MAX_TESTS);
     for test in pattern_tests {
         qc.quickcheck(test);
     }
