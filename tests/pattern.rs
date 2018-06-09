@@ -65,37 +65,44 @@ fn instruction_patterns_to_regex_one_operand() {
 #[test]
 fn quickcheck() {
     let pattern_tests = vec![
-        ("lea eax, [rip + $num:v1]", vec![OperandWidth::Width64]),
-        // ("lea eax, [rip - $num:v1]", vec![OperandWidth::Width64]),
-        ("lea rax, [rip + $num:v1]", vec![OperandWidth::Width64]),
-    ].into_iter()
-        .map(|(pat, blacklisted)| PatternTest {
-            pattern: pat,
-            regex: Regex::new(
-                &(format!(
-                    "^(?s-u){}$",
-                    encodings_to_regex(
-                        &InstructionPattern::from_str(pat)
-                            .unwrap()
-                            .find_encodings()
-                            .unwrap()
-                    )
-                )),
-            ).unwrap(),
-            blacklisted_widths: blacklisted,
-        });
+        PatternTest::new("lea eax, [rip + $num:v1]", vec![OperandWidth::Width64]),
+        // PatternTest::new("lea eax, [rip - $num:v1]", vec![OperandWidth::Width64]),
+        PatternTest::new("lea rax, [rip + $num:v1]", vec![OperandWidth::Width64]),
+    ];
+
     let mut qc = QuickCheck::new()
         .tests(QUICKCHECK_TESTS)
         .max_tests(QUICKCHECK_MAX_TESTS);
+
     for test in pattern_tests {
         qc.quickcheck(test);
     }
 }
 
 struct PatternTest {
-    pattern: &'static str,
+    pattern: String,
     regex: Regex,
     blacklisted_widths: Vec<OperandWidth>,
+}
+
+impl PatternTest {
+    fn new(pattern: &str, blacklisted_widths: Vec<OperandWidth>) -> PatternTest {
+        PatternTest {
+            pattern: pattern.to_owned(),
+            blacklisted_widths,
+            regex: Regex::new(
+                &(format!(
+                    "^(?s-u){}$",
+                    encodings_to_regex(
+                        &InstructionPattern::from_str(pattern)
+                            .unwrap()
+                            .find_encodings()
+                            .unwrap()
+                    )
+                )),
+            ).unwrap(),
+        }
+    }
 }
 
 impl Testable for PatternTest {
