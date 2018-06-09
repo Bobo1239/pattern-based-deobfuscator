@@ -1,5 +1,4 @@
 extern crate byteorder;
-extern crate parking_lot;
 extern crate quickcheck;
 extern crate regex;
 extern crate unhappy_arxan;
