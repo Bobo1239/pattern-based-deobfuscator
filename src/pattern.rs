@@ -1,11 +1,12 @@
 use std::fmt::{self, Display};
+use std::hash::Hash;
 use std::str::FromStr;
 
 use fxhash::FxHashSet;
 use keystone_assemble;
 use regex::Regex;
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Debug, Fail, PartialEq, Eq, Hash)]
 pub enum PatternError {
     #[fail(display = "invalid variable type: {}", _0)]
     InvalidVariableType(String),
@@ -15,7 +16,77 @@ pub enum PatternError {
     AssemblyFailed,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Register {
+    RAX,
+    EAX,
+    RBX,
+    EBX,
+    RCX,
+    ECX,
+    RDX,
+    EDX,
+    RBP,
+    EBP,
+    RSP,
+    ESP,
+    RSI,
+    ESI,
+    RDI,
+    EDI,
+    RIP,
+    EIP,
+}
+
+impl Register {
+    pub fn all() -> &'static [Register] {
+        &[
+            Register::RAX,
+            Register::EAX,
+            Register::RBX,
+            Register::EBX,
+            Register::RCX,
+            Register::ECX,
+            Register::RDX,
+            Register::EDX,
+            Register::RBP,
+            Register::EBP,
+            Register::RSP,
+            Register::ESP,
+            Register::RSI,
+            Register::ESI,
+            Register::RDI,
+            Register::EDI,
+            Register::RIP,
+            Register::EIP,
+        ]
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Register::RAX => "RAX",
+            Register::EAX => "EAX",
+            Register::RBX => "RBX",
+            Register::EBX => "EBX",
+            Register::RCX => "RCX",
+            Register::ECX => "ECX",
+            Register::RDX => "RDX",
+            Register::EDX => "EDX",
+            Register::RBP => "RBP",
+            Register::EBP => "EBP",
+            Register::RSP => "RSP",
+            Register::ESP => "ESP",
+            Register::RSI => "RSI",
+            Register::ESI => "ESI",
+            Register::RDI => "RDI",
+            Register::EDI => "EDI",
+            Register::RIP => "RIP",
+            Register::EIP => "EIP",
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
     name: String,
     typee: VariableType,
@@ -36,20 +107,11 @@ pub enum VariableType {
     Register,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct InstructionPattern {
-    pattern: String,
-    variables: Vec<Variable>,
-}
-
-impl InstructionPattern {
-    pub fn pattern(&self) -> &str {
-        &self.pattern
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Encoding(Vec<EncodingPart>);
+pub struct Encoding {
+    parts: Vec<EncodingPart>,
+    register_mappings: Vec<(String, Register)>,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EncodingPart {
@@ -58,10 +120,17 @@ pub enum EncodingPart {
 }
 
 impl Encoding {
+    fn new(parts: Vec<EncodingPart>, register_mappings: Vec<(String, Register)>) -> Encoding {
+        Encoding {
+            parts,
+            register_mappings,
+        }
+    }
+
     // TODO: this will output regex groups with conflicting names
     pub fn to_regex(&self) -> String {
         let mut regex = String::new();
-        for part in &self.0 {
+        for part in &self.parts {
             match part {
                 EncodingPart::Fixed(bytes) => {
                     for byte in bytes {
@@ -84,7 +153,42 @@ impl Encoding {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct InstructionPattern {
+    pattern: String,
+    /// List of variables in the order they appear in the pattern. Also contains duplicates.
+    variables: Vec<Variable>,
+}
+
 impl InstructionPattern {
+    pub fn pattern(&self) -> &str {
+        &self.pattern
+    }
+
+    pub fn variables(&self) -> &[Variable] {
+        &self.variables
+    }
+
+    pub fn unique_register_variables(&self) -> Vec<&Variable> {
+        let mut vec = Vec::new();
+        for register_variable in self
+            .variables
+            .iter()
+            .filter(|v| v.typee == VariableType::Register)
+        {
+            if !vec.contains(&register_variable) {
+                vec.push(register_variable)
+            }
+        }
+        vec
+    }
+
+    pub fn number_variables(&self) -> impl Iterator<Item = &Variable> {
+        self.variables
+            .iter()
+            .filter(|v| v.typee == VariableType::Number)
+    }
+
     pub fn find_encodings(&self) -> Result<Vec<Encoding>, PatternError> {
         fn pattern_to_encodings(
             pattern: &InstructionPattern,
@@ -99,52 +203,117 @@ impl InstructionPattern {
                 }
             }
 
-            fn instantiate_and_detect_encoding(
-                pattern: &InstructionPattern,
-                instantiate_with: &str,
-            ) -> Result<Encoding, PatternError> {
-                let instance = pattern
-                    .pattern
-                    .replace(&pattern.variables[0].to_string(), instantiate_with);
-                debug!("instance: {}", instance);
-                match keystone_assemble(instance) {
-                    Err(error) => {
-                        warn!("assembly failed: {}", error);
-                        Err(PatternError::AssemblyFailed)
-                    }
-                    Ok(encoded) => {
-                        debug!("encoded:  {:x?}", encoded);
-                        detect_intermediate_len(&encoded.bytes).map(|intermediate_len| {
-                            let mut encoding = Vec::new();
-                            encoding.push(EncodingPart::Fixed(
-                                encoded.bytes
-                                    [..(encoded.size - u32::from(intermediate_len)) as usize]
-                                    .to_vec(),
-                            ));
-                            encoding.push(EncodingPart::Intermediate {
-                                length: intermediate_len,
-                                variable_name: pattern.variables[0].name.clone(),
-                            });
-                            Encoding(encoding)
-                        })
-                    }
-                }
-            }
+            let mapped_register_tuple = |register_tuple: &[Register]| {
+                pattern
+                    .unique_register_variables()
+                    .into_iter()
+                    .zip(register_tuple.iter().cloned())
+                    .collect::<Vec<_>>()
+            };
 
-            assert!(pattern.variables.len() == 1); //FIXME
+            let instantiate_one_number_variables_and_detect_encoding =
+                |pattern: &InstructionPattern,
+                 partial_instance: &str,
+                 instantiate_with: &str,
+                 register_tuple: &[Register]| {
+                    // FIXME: Only insert first number_variable
+                    let variable = pattern.number_variables().next().unwrap();
+                    let instance =
+                        partial_instance.replace(&variable.to_string(), instantiate_with);
+                    debug!("instance: {}", instance);
+                    match keystone_assemble(instance) {
+                        Err(error) => {
+                            warn!("assembly failed: {}", error);
+                            Err(PatternError::AssemblyFailed)
+                        }
+                        Ok(mut encoded) => {
+                            debug!("encoded: {:x?}", encoded);
+                            detect_intermediate_len(&encoded.bytes).map(|intermediate_len| {
+                                let mut encoding = Vec::new();
+                                encoded.bytes.truncate(
+                                    (encoded.size - u32::from(intermediate_len)) as usize,
+                                );
+                                encoding.push(EncodingPart::Fixed(encoded.bytes));
+                                encoding.push(EncodingPart::Intermediate {
+                                    length: intermediate_len,
+                                    variable_name: variable.name.clone(),
+                                });
+                                Encoding::new(
+                                    encoding,
+                                    mapped_register_tuple(register_tuple)
+                                        .into_iter()
+                                        .map(|(var, reg)| (var.name.clone(), reg))
+                                        .collect(),
+                                )
+                            })
+                        }
+                    }
+                };
+
+            let foreach_register_tuple = |register_tuple: &[Register]| {
+                let mut instance = pattern.pattern.clone();
+                for (variable, register) in mapped_register_tuple(register_tuple) {
+                    debug!("{}", variable.to_string());
+                    instance = instance.replace(&variable.to_string(), register.name());
+                }
+                match pattern.number_variables().count() {
+                    0 => {
+                        debug!("instance: {}", instance);
+                        match keystone_assemble(instance) {
+                            Err(error) => {
+                                warn!("assembly failed: {}", error);
+                                vec![Err(PatternError::AssemblyFailed)]
+                            }
+                            Ok(encoded) => {
+                                debug!("encoded: {:x?}", encoded);
+                                vec![Ok(Encoding::new(
+                                    vec![EncodingPart::Fixed(encoded.bytes)],
+                                    mapped_register_tuple(register_tuple)
+                                        .into_iter()
+                                        .map(|(var, reg)| (var.name.clone(), reg))
+                                        .collect(),
+                                ))]
+                            }
+                        }
+                    }
+                    1 => {
+                        // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
+                        let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
+                        let mut vec = Vec::new();
+                        for instantiation in &instantiations {
+                            vec.push(instantiate_one_number_variables_and_detect_encoding(
+                                &pattern,
+                                &instance,
+                                instantiation,
+                                register_tuple,
+                            ));
+                        }
+                        vec
+                    }
+                    _ => unimplemented!(),
+                }
+            };
+
+            let mut encoding_results: FxHashSet<Result<Encoding, PatternError>> =
+                FxHashSet::default();
+            apply_for_all_register_tuples(
+                pattern.unique_register_variables().len(),
+                &foreach_register_tuple,
+                &mut encoding_results,
+            );
 
             let mut encodings = FxHashSet::default();
-            // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
-            let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
+
             let mut assembly_failed = true;
-            for instantiation in &instantiations {
-                let result = instantiate_and_detect_encoding(pattern, instantiation);
+            for result in encoding_results {
                 if let Ok(encoding) = result {
                     encodings.insert(encoding);
                 } else if Err(PatternError::AssemblyFailed) != result {
                     assembly_failed = false;
                 }
             }
+
+            debug!("{:?}", encodings);
 
             if encodings.is_empty() {
                 if assembly_failed {
@@ -162,7 +331,7 @@ impl InstructionPattern {
                     let mut parts = Vec::new();
                     parts.push(EncodingPart::Fixed(asm));
                     let mut encodings = Vec::new();
-                    encodings.push(Encoding(parts));
+                    encodings.push(Encoding::new(parts, Vec::new()));
                     Ok(encodings)
                 }
                 Err(_) => Err(PatternError::DetectionError),
@@ -191,9 +360,7 @@ impl FromStr for InstructionPattern {
                 typee => return Err(PatternError::InvalidVariableType(typee.to_string())),
             };
             let var = Variable { typee, name };
-            if !vec.contains(&var) {
-                vec.push(var);
-            }
+            vec.push(var);
         }
 
         Ok(InstructionPattern {
@@ -215,6 +382,43 @@ impl Display for Variable {
             self.name
         )
     }
+}
+
+fn apply_for_all_tuples<T, F, R>(
+    tuple_template: &mut [T],
+    missing_elements: usize,
+    set: &[T],
+    f: &F,
+    results: &mut FxHashSet<R>,
+) where
+    F: Fn(&[T]) -> Vec<R>,
+    T: Clone,
+    R: Eq + Hash,
+{
+    if missing_elements == 0 {
+        for r in f(tuple_template).into_iter() {
+            results.insert(r);
+        }
+    } else {
+        for element in set {
+            tuple_template[tuple_template.len() - missing_elements] = element.clone();
+            apply_for_all_tuples(tuple_template, missing_elements - 1, set, f, results);
+        }
+    }
+}
+
+fn apply_for_all_register_tuples<F, R>(tuple_elements: usize, f: &F, results: &mut FxHashSet<R>)
+where
+    F: Fn(&[Register]) -> Vec<R>,
+    R: Eq + Hash,
+{
+    apply_for_all_tuples(
+        &mut vec![Register::RAX; tuple_elements],
+        tuple_elements,
+        Register::all(),
+        f,
+        results,
+    );
 }
 
 // NOTE: This is only temporary
@@ -247,7 +451,10 @@ mod tests {
             "move $reg:a, $reg:b",
             vec![var("a", Register), var("b", Register)],
         );
-        test("move $reg:a, $reg:a", vec![var("a", Register)]);
+        test(
+            "move $reg:a, $reg:a",
+            vec![var("a", Register), var("a", Register)],
+        );
         test("move eax, [$num:num1]", vec![var("num1", Number)]);
         test("move eax, [$num:42]", vec![var("42", Number)]);
         assert_eq!(
