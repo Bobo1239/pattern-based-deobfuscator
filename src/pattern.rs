@@ -279,16 +279,17 @@ impl InstructionPattern {
                     1 => {
                         // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
                         let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
-                        let mut vec = Vec::new();
-                        for instantiation in &instantiations {
-                            vec.push(instantiate_one_number_variables_and_detect_encoding(
-                                &pattern,
-                                &instance,
-                                instantiation,
-                                register_tuple,
-                            ));
-                        }
-                        vec
+                        instantiations
+                            .iter()
+                            .map(|ref instantiation| {
+                                instantiate_one_number_variables_and_detect_encoding(
+                                    &pattern,
+                                    &instance,
+                                    instantiation,
+                                    register_tuple,
+                                )
+                            })
+                            .collect()
                     }
                     _ => unimplemented!(),
                 }
