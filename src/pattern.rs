@@ -397,7 +397,7 @@ fn apply_for_all_tuples<T, F, R>(
     R: Eq + Hash,
 {
     if missing_elements == 0 {
-        for r in f(tuple_template).into_iter() {
+        for r in f(tuple_template) {
             results.insert(r);
         }
     } else {
