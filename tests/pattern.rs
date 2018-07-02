@@ -14,6 +14,9 @@ use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult, Testable};
 use unhappy_arxan::keystone_assemble;
 use unhappy_arxan::pattern::*;
 
+#[cfg(debug_assertions)]
+const QUICKCHECK_TESTS: u64 = 1_000;
+#[cfg(not(debug_assertions))]
 const QUICKCHECK_TESTS: u64 = 10_000;
 const QUICKCHECK_MAX_TESTS: u64 = 10 * QUICKCHECK_TESTS;
 
@@ -34,6 +37,7 @@ fn quickcheck_tests() {
     let pattern_tests = vec![
         PatternTest::new("lea eax, [rip + $num:n1]", vec![NumberWidth::Width64]),
         PatternTest::new("lea rax, [rip + $num:n1]", vec![NumberWidth::Width64]),
+        PatternTest::new("lea $reg:r1, [rip]", vec![NumberWidth::Width64]),
         PatternTest::new("lea $reg:r1, [rip + $num:n1]", vec![NumberWidth::Width64]),
         PatternTest::new(
             "lea $reg:r1, [$reg:r2 + $num:n1]",
@@ -42,13 +46,6 @@ fn quickcheck_tests() {
     ];
     quickcheck(pattern_tests);
 }
-
-// FIXME: enable again
-// #[test]
-// fn quickcheck_one_register_var() {
-//     let pattern_tests = vec![PatternTest::new("lea $reg:r1, [rip + 0x1000]", vec![])];
-//     quickcheck(pattern_tests);
-// }
 
 struct PatternTest {
     matcher: InstructionPatternMatcher,
@@ -92,8 +89,6 @@ impl Testable for PatternTest {
                         let mut register = RegisterWrapper::arbitrary(gen);
                         instance =
                             instance.replace(&format!("$reg:{}", variable.name()), register.name());
-                        warn!("{:?} {}", *register, register.name());
-                        warn!("{}", instance);
                         vec.push(InstantiatedVariable::new_register(
                             variable.name().to_string(),
                             *register,

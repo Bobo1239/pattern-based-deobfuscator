@@ -321,7 +321,7 @@ impl InstructionPattern {
                 }
                 Err(_) => Err(PatternError::DetectionError),
             },
-            _ if self.number_variables().count() == 1 => {
+            _ if self.number_variables().count() <= 1 => {
                 pattern_to_encodings(self).map(|set| set.into_iter().collect())
             }
             _ => unimplemented!(
