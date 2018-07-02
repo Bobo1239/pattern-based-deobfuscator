@@ -38,8 +38,6 @@ pub enum Register {
     ESI,
     RDI,
     EDI,
-    RIP,
-    EIP,
 }
 
 impl Register {
@@ -61,8 +59,6 @@ impl Register {
             Register::ESI,
             Register::RDI,
             Register::EDI,
-            Register::RIP,
-            Register::EIP,
         ]
     }
 
@@ -84,8 +80,6 @@ impl Register {
             Register::ESI => "ESI",
             Register::RDI => "RDI",
             Register::EDI => "EDI",
-            Register::RIP => "RIP",
-            Register::EIP => "EIP",
         }
     }
 }
@@ -244,7 +238,6 @@ impl InstructionPattern {
             let foreach_register_tuple = |register_tuple: &[Register]| {
                 let mut instance = pattern.pattern.clone();
                 for (variable, register) in mapped_register_tuple(register_tuple) {
-                    debug!("{}", variable.to_string());
                     instance = instance.replace(&variable.to_string(), register.name());
                 }
                 match pattern.number_variables().count() {
@@ -328,8 +321,12 @@ impl InstructionPattern {
                 }
                 Err(_) => Err(PatternError::DetectionError),
             },
-            1 => pattern_to_encodings(self).map(|set| set.into_iter().collect()),
-            _ => unimplemented!(),
+            _ if self.number_variables().count() == 1 => {
+                pattern_to_encodings(self).map(|set| set.into_iter().collect())
+            }
+            _ => unimplemented!(
+                "Multiple number variables in an instruction patterns aren't supported yet!"
+            ),
         }
     }
 }

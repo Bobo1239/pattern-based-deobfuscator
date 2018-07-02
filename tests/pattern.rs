@@ -29,12 +29,16 @@ fn quickcheck(tests: Vec<PatternTest>) {
 
 // TODO: add test with instruction which has many different encodings (according to intel manual); lea, add, ...
 #[test]
-fn quickcheck_one_number_var() {
+fn quickcheck_tests() {
     env_logger::init();
     let pattern_tests = vec![
         PatternTest::new("lea eax, [rip + $num:n1]", vec![NumberWidth::Width64]),
         PatternTest::new("lea rax, [rip + $num:n1]", vec![NumberWidth::Width64]),
-        // PatternTest::new("lea $reg:r1, [rip + $num:n1]", vec![NumberWidth::Width64]),
+        PatternTest::new("lea $reg:r1, [rip + $num:n1]", vec![NumberWidth::Width64]),
+        PatternTest::new(
+            "lea $reg:r1, [$reg:r2 + $num:n1]",
+            vec![NumberWidth::Width64],
+        ),
     ];
     quickcheck(pattern_tests);
 }
@@ -67,9 +71,6 @@ impl PatternTest {
 impl Testable for PatternTest {
     fn result<G: Gen>(&self, gen: &mut G) -> TestResult {
         let mut instance = self.matcher.pattern().pattern().to_owned();
-        for reg in self.matcher.pattern().unique_register_variables() {
-            instance = instance.replace(&reg.to_string(), RegisterWrapper::arbitrary(gen).name());
-        }
 
         let variable_instantiations = {
             let mut vec = Vec::new();
@@ -87,7 +88,17 @@ impl Testable for PatternTest {
                             number.value(),
                         ));
                     }
-                    VariableType::Register => unimplemented!(),
+                    VariableType::Register => {
+                        let mut register = RegisterWrapper::arbitrary(gen);
+                        instance =
+                            instance.replace(&format!("$reg:{}", variable.name()), register.name());
+                        warn!("{:?} {}", *register, register.name());
+                        warn!("{}", instance);
+                        vec.push(InstantiatedVariable::new_register(
+                            variable.name().to_string(),
+                            *register,
+                        ));
+                    }
                 }
             }
             vec
@@ -98,6 +109,7 @@ impl Testable for PatternTest {
             match self.matcher.match_against(&assembled.bytes) {
                 Some((found_variables, matched_bytes)) => {
                     assert!(u32::from(matched_bytes) == assembled.size);
+                    debug!("expected variables: {:x?}", variable_instantiations);
                     debug!("found variables: {:x?}", found_variables);
                     for variable_instantiation in variable_instantiations {
                         assert!(
@@ -150,12 +162,19 @@ impl Number {
 
 impl Arbitrary for Number {
     fn arbitrary<G: Gen>(gen: &mut G) -> Number {
-        match gen.gen_range(0, 4) {
-            0 => Number::Width8(gen.gen()),
-            1 => Number::Width16(gen.gen()),
-            2 => Number::Width32(gen.gen()),
-            3 => Number::Width64(gen.gen()),
-            _ => unreachable!(),
+        loop {
+            let generated = match gen.gen_range(0, 4) {
+                0 => Number::Width8(gen.gen()),
+                1 => Number::Width16(gen.gen()),
+                2 => Number::Width32(gen.gen()),
+                3 => Number::Width64(gen.gen()),
+                _ => unreachable!(),
+            };
+            // TODO: ideally, this wouldn't be necessary; but the encoding detection algorithm has
+            //       to account for this and it doesn't really seem that useful in practice
+            if generated.value() != 0 {
+                return generated;
+            }
         }
     }
 }
