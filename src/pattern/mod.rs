@@ -1,3 +1,7 @@
+mod finder;
+
+pub use self::finder::*;
+
 use std::fmt::{self, Display};
 use std::hash::Hash;
 use std::str::FromStr;
@@ -62,7 +66,7 @@ impl Register {
         ]
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Register::RAX => "RAX",
             Register::EAX => "EAX",
@@ -99,6 +103,14 @@ impl Variable {
             typee,
         }
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn typee(&self) -> VariableType {
+        self.typee
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -127,33 +139,12 @@ impl Encoding {
         }
     }
 
-    // TODO: this will output regex groups with conflicting names
-    pub fn to_regex(&self) -> String {
-        let mut regex = String::new();
-        for part in &self.parts {
-            match part {
-                EncodingPart::Fixed(bytes) => {
-                    for byte in bytes {
-                        regex += &format!(r"\x{:02x}", byte);
-                    }
-                }
-                EncodingPart::Intermediate {
-                    length,
-                    variable_name,
-                } => {
-                    regex += &format!("(?P<{}>", variable_name);
-                    for _ in 0..*length {
-                        regex.push('.');
-                    }
-                    regex.push(')');
-                }
-            }
-        }
-        regex
+    fn register_mappings(&self) -> &[(String, Register)] {
+        &self.register_mappings
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InstructionPattern {
     pattern: String,
     /// List of variables in the order they appear in the pattern. Also contains duplicates.
@@ -314,7 +305,7 @@ impl InstructionPattern {
                 }
             }
 
-            debug!("{:?}", encodings);
+            debug!("encodings: {:x?}", encodings);
 
             if encodings.is_empty() {
                 if assembly_failed {
@@ -420,13 +411,6 @@ where
         f,
         results,
     );
-}
-
-// NOTE: This is only temporary
-#[deprecated]
-pub fn encodings_to_regex(encodings: &[Encoding]) -> String {
-    let regexes: Vec<_> = encodings.iter().map(|enc| enc.to_regex()).collect();
-    format!("({})", regexes.join("|"))
 }
 
 #[cfg(test)]

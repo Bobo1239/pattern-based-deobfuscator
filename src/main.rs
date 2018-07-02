@@ -60,8 +60,9 @@ fn main() {
     let mut final_regex = "(?s-u)".to_string();
     for instruction in &database[0].0 {
         println!("instruction: {:?}", instruction);
-        let pattern: InstructionPattern = instruction.parse().expect("Failed to parse pattern!");
-        final_regex += &encodings_to_regex(&pattern.find_encodings().unwrap());
+        let _pattern: InstructionPattern = instruction.parse().expect("Failed to parse pattern!");
+        final_regex += "";
+        // final_regex += &encodings_to_regex(&pattern.find_encodings().unwrap()); // FIXME
     }
 
     println!("REGEX: {}", final_regex);
