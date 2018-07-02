@@ -103,7 +103,7 @@ impl Testable for PatternTest {
             }
             vec
         };
-        println!("instance: {}", instance);
+        debug!("test instance: {}", instance);
 
         if let Ok(assembled) = keystone_assemble(instance) {
             match self.matcher.match_against(&assembled.bytes) {
