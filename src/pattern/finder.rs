@@ -162,4 +162,18 @@ impl InstantiatedVariable {
     pub fn new_register(name: String, value: Register) -> InstantiatedVariable {
         InstantiatedVariable::Register(name, value)
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            InstantiatedVariable::Number(name, _) => name,
+            InstantiatedVariable::Register(name, _) => name,
+        }
+    }
+
+    pub fn typee(&self) -> VariableType {
+        match self {
+            InstantiatedVariable::Number(..) => VariableType::Number,
+            InstantiatedVariable::Register(..) => VariableType::Register,
+        }
+    }
 }

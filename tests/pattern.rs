@@ -43,6 +43,10 @@ fn quickcheck_tests() {
             "lea $reg:r1, [$reg:r2 + $num:n1]",
             vec![NumberWidth::Width64],
         ),
+        PatternTest::new(
+            "lea $reg:r1, [$reg:r1 + $num:n1]",
+            vec![NumberWidth::Width64],
+        ),
     ];
     quickcheck(pattern_tests);
 }
@@ -72,6 +76,13 @@ impl Testable for PatternTest {
         let variable_instantiations = {
             let mut vec = Vec::new();
             for variable in self.matcher.pattern().variables() {
+                if vec.iter().any(|v: &InstantiatedVariable| {
+                    v.name() == variable.name() && v.typee() == variable.typee()
+                }) {
+                    // Variable is already instantiated
+                    continue;
+                }
+
                 match variable.typee() {
                     VariableType::Number => {
                         let mut number = Number::arbitrary(gen);
