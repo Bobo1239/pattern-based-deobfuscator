@@ -263,6 +263,7 @@ impl InstructionPattern {
                     }
                     1 => {
                         // TODO: we may have to check if 0x0F and 0xFF as some instruction have different encodings dependent on the sign
+                        // Note that these are all positive numbers
                         let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
                         instantiations
                             .iter()

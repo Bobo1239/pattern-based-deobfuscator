@@ -39,8 +39,8 @@ fn main() {
     env_logger::init();
 
     let database = vec![(
-        vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"],
-        vec!["jmp [rip + $num:var_name1]"],
+        vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"], // pattern
+        vec!["jmp [rip + $num:var_name1]"],                                // replacement
     )];
 
     let buffer = fs::read("sample.exe").unwrap();
@@ -86,7 +86,7 @@ struct Span<'a> {
 fn get_code_segments<'a>(pe: PE, buffer: &'a [u8]) -> Vec<Span<'a>> {
     use goblin::pe::section_table::IMAGE_SCN_CNT_CODE;
 
-    println!("{:?}", pe.entry);
+    // println!("{:?}", pe.entry);
     let mut vec = Vec::new();
     for section in pe.sections {
         // println!("{:#x?}", section);
