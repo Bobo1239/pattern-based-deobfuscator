@@ -2,6 +2,7 @@
 name = "unhappy-arxan"
 version = "0.1.0"
 authors = ["Boris-Chengbiao Zhou <bobo1239@web.de>"]
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 keystone = "0.9.0"
