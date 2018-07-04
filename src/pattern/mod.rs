@@ -201,18 +201,19 @@ impl InstructionPattern {
                  partial_instance: &str,
                  instantiate_with: &str,
                  register_tuple: &[Register]| {
-                    // FIXME: Only insert first number_variable
+                    // FIXME: Only replace first occurence of number_variable;
+                    //        doesn't matter atm as we only support one number variable...
                     let variable = pattern.number_variables().next().unwrap();
                     let instance =
                         partial_instance.replace(&variable.to_string(), instantiate_with);
-                    debug!("instance: {}", instance);
+                    trace!("instance: {}", instance);
                     match keystone_assemble(instance) {
                         Err(error) => {
                             warn!("assembly failed: {}", error);
                             Err(PatternError::AssemblyFailed)
                         }
                         Ok(mut encoded) => {
-                            debug!("encoded: {:x?}", encoded);
+                            trace!("encoded: {:x?}", encoded);
                             detect_intermediate_len(&encoded.bytes).map(|intermediate_len| {
                                 let mut encoding = Vec::new();
                                 encoded.bytes.truncate(
@@ -242,14 +243,14 @@ impl InstructionPattern {
                 }
                 match pattern.number_variables().count() {
                     0 => {
-                        debug!("instance: {}", instance);
+                        trace!("instance: {}", instance);
                         match keystone_assemble(instance) {
                             Err(error) => {
                                 warn!("assembly failed: {}", error);
                                 vec![Err(PatternError::AssemblyFailed)]
                             }
                             Ok(encoded) => {
-                                debug!("encoded: {:x?}", encoded);
+                                trace!("encoded: {:x?}", encoded);
                                 vec![Ok(Encoding::new(
                                     vec![EncodingPart::Fixed(encoded.bytes)],
                                     mapped_register_tuple(register_tuple)

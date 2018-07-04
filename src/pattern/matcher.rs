@@ -3,9 +3,147 @@ use regex::bytes::Regex;
 use pattern::*;
 
 #[derive(Debug, Clone)]
+pub struct ObfuscationPatternMatcher {
+    instruction_pattern_matchers: Vec<InstructionPatternMatcher>,
+    regex: Regex,
+}
+
+impl ObfuscationPatternMatcher {
+    pub fn new(
+        instruction_patterns: Vec<InstructionPattern>,
+    ) -> Result<ObfuscationPatternMatcher, PatternError> {
+        let instruction_pattern_matchers = instruction_patterns
+            .into_iter()
+            .map(|ip| InstructionPatternMatcher::new(ip))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // regex flags:
+        //    s: allow . to match \n
+        //   -u: disable unicode support (allow matches even when not at a unicode boundary)
+        let regex = format!(
+            "(?s-u){}",
+            instruction_pattern_matchers
+                .iter()
+                .map(|ipm| &*ipm.regex)
+                .collect::<Vec<_>>()
+                .join("")
+        );
+        debug!("obfuscation pattern regex: {}", regex);
+        let regex = Regex::new(&regex).unwrap();
+
+        Ok(ObfuscationPatternMatcher {
+            instruction_pattern_matchers,
+            regex,
+        })
+    }
+
+    pub fn instruction_patterns(&self) -> Vec<InstructionPattern> {
+        self.instruction_pattern_matchers
+            .iter()
+            .map(|ipm| ipm.pattern.clone())
+            .collect()
+    }
+
+    /// Returns the found matches where each match contains information about the matched variables,
+    /// the start position, and the end position
+    pub fn match_against(&self, bytes: &[u8]) -> Vec<(Vec<InstantiatedVariable>, usize, usize)> {
+        debug!("regex: {}", self.regex.as_str());
+        debug!("match against: {:x?}", bytes);
+        self.regex
+            .captures_iter(bytes)
+            .map(|captures| {
+                trace!("new capture ----------");
+                let whole_match = captures.get(0).unwrap();
+                // need to offset the capture group purpose index as the indices in the
+                // `InstructionPatternMatcher`s are only valid in their own capture group
+                let mut capture_group_offset = 1;
+                let mut instantiated_variables = Vec::new();
+
+                'outer: for k in 0..self.instruction_pattern_matchers.len() {
+                    trace!("capture_group_offset: {:?}", capture_group_offset);
+                    for i in 1.. {
+                        // Iterate through the different encoding capture groups of this instruction
+                        // pattern
+                        // This will definitely terminate as regex.captures(bytes) only returns `Some` if
+                        // it matched and then an encoding capture group must have participated in the match
+                        if let CaptureGroupPurpose::NewEncoding(ref register_mappings) =
+                            self.instruction_pattern_matchers[k].capture_group_purposes[i]
+                        {
+                            trace!("getting capture group {}", i + capture_group_offset);
+                            if captures.get(i + capture_group_offset).is_some() {
+                                // Found the matched encoding; Extract the number variables and return result
+
+                                for j in (i + 1).. {
+                                    trace!(
+                                        "inner getting capture group {}",
+                                        j + capture_group_offset
+                                    );
+                                    match self.instruction_pattern_matchers[k]
+                                        .capture_group_purposes
+                                        .get(j)
+                                    {
+                                        None | Some(CaptureGroupPurpose::NewEncoding(_)) => {
+                                            // Also add register variable instantiations
+                                            for (variable_name, register) in register_mappings {
+                                                // FIXME: first check if there's already in instantiation for this variable
+                                                instantiated_variables.push(
+                                                    InstantiatedVariable::new_register(
+                                                        variable_name.to_string(),
+                                                        *register,
+                                                    ),
+                                                );
+                                            }
+                                            if k == self.instruction_pattern_matchers.len() - 1 {
+                                                // matched all instruction patterns; success!
+                                                return Some((
+                                                    instantiated_variables,
+                                                    whole_match.start(),
+                                                    whole_match.end(),
+                                                ));
+                                            } else {
+                                                capture_group_offset += self
+                                                    .instruction_pattern_matchers[k]
+                                                    .capture_group_purposes
+                                                    .len();
+                                                continue 'outer;
+                                            }
+                                        }
+                                        Some(CaptureGroupPurpose::NumberVariable(
+                                            variable_name,
+                                        )) => {
+                                            let bytes = &captures[j + capture_group_offset];
+                                            assert!(bytes.len() <= 4);
+                                            let mut value = 0;
+                                            for byte in bytes.iter().rev() {
+                                                value <<= 8;
+                                                value += u64::from(*byte);
+                                            }
+                                            // FIXME: first check if there's already in instantiation for this variable
+                                            instantiated_variables.push(
+                                                InstantiatedVariable::new_number(
+                                                    variable_name.to_string(),
+                                                    value,
+                                                ),
+                                            )
+                                        }
+                                        Some(CaptureGroupPurpose::WholeMatch) => unreachable!(),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                unreachable!()
+            })
+            .filter_map(|opt| opt)
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct InstructionPatternMatcher {
     pattern: InstructionPattern,
-    regex: Regex,
+    regex: String,
     /// Mapping from the index of a regex capture group number to either the whole match, a
     /// variable, or a start of a new encoding (which indicates the register variable
     /// instantiations). Note that always only a continous range of capture groups will be captured
@@ -18,7 +156,6 @@ impl InstructionPatternMatcher {
         let encodings = pattern.find_encodings()?;
 
         let (regex, capture_group_purposes) = Self::encodings_to_regex(&encodings);
-        let regex = Regex::new(&regex).unwrap();
 
         Ok(InstructionPatternMatcher {
             pattern,
@@ -35,13 +172,7 @@ impl InstructionPatternMatcher {
             .iter()
             .map(|enc| Self::encoding_to_regex(&mut capture_group_purposes, enc))
             .collect();
-        // regex flags:
-        //    s: allow . to match \n
-        //   -u: disable unicode support (allow matches even when not at a unicode boundary)
-        (
-            format!("(?s-u)^{}", &regexes.join("|")),
-            capture_group_purposes,
-        )
+        (format!("({})", regexes.join("|")), capture_group_purposes)
     }
 
     fn encoding_to_regex(
@@ -81,60 +212,6 @@ impl InstructionPatternMatcher {
 
     pub fn pattern(&self) -> &InstructionPattern {
         &self.pattern
-    }
-
-    /// Returns the matched [Variable]s and the number of bytes that got matched
-    pub fn match_against(&self, bytes: &[u8]) -> Option<(Vec<InstantiatedVariable>, u8)> {
-        debug!("regex: {}", self.regex.as_str());
-        debug!("capture group purposes: {:?}", self.capture_group_purposes);
-        debug!("match against: {:x?}", bytes);
-        self.regex.captures(bytes).map(|captures| {
-            for i in 1.. {
-                // This will definitely terminate as regex.captures(bytes) only returns some if
-                // it matched and then an encoding capture group must have participated in the match
-                if let CaptureGroupPurpose::NewEncoding(ref register_mappings) =
-                    self.capture_group_purposes[i]
-                {
-                    if let Some(whole_match) = captures.get(i) {
-                        // Found the matched encoding; Extract the number variables and return result
-                        let matched_length = (whole_match.end() - whole_match.start()) as u8;
-
-                        let mut instantiated_variables = Vec::new();
-                        for j in (i + 1).. {
-                            match self.capture_group_purposes.get(j) {
-                                None | Some(CaptureGroupPurpose::NewEncoding(_)) => {
-                                    // Also add register variable instantiations
-                                    for (variable_name, register) in register_mappings {
-                                        instantiated_variables.push(
-                                            InstantiatedVariable::new_register(
-                                                variable_name.to_string(),
-                                                *register,
-                                            ),
-                                        );
-                                    }
-                                    return (instantiated_variables, matched_length);
-                                }
-                                Some(CaptureGroupPurpose::NumberVariable(variable_name)) => {
-                                    let bytes = &captures[j];
-                                    assert!(bytes.len() <= 4);
-                                    let mut value = 0;
-                                    for byte in bytes.iter().rev() {
-                                        value <<= 8;
-                                        value += u64::from(*byte);
-                                    }
-                                    instantiated_variables.push(InstantiatedVariable::new_number(
-                                        variable_name.to_string(),
-                                        value,
-                                    ))
-                                }
-                                Some(CaptureGroupPurpose::WholeMatch) => unreachable!(),
-                            }
-                        }
-                    }
-                }
-            }
-            unreachable!()
-        })
     }
 }
 

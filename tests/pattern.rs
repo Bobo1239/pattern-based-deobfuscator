@@ -32,19 +32,44 @@ fn quickcheck(tests: Vec<PatternTest>) {
 
 // TODO: add test with instruction which has many different encodings (according to intel manual); lea, add, ...
 #[test]
-fn quickcheck_tests() {
-    env_logger::init();
+fn quickcheck_test_one_instruction_pattern() {
+    env_logger::try_init().ok();
     let pattern_tests = vec![
-        PatternTest::new("lea eax, [rip + $num:n1]", vec![NumberWidth::Width64]),
-        PatternTest::new("lea rax, [rip + $num:n1]", vec![NumberWidth::Width64]),
-        PatternTest::new("lea $reg:r1, [rip]", vec![NumberWidth::Width64]),
-        PatternTest::new("lea $reg:r1, [rip + $num:n1]", vec![NumberWidth::Width64]),
         PatternTest::new(
-            "lea $reg:r1, [$reg:r2 + $num:n1]",
+            &vec!["lea eax, [rip + $num:n1]"],
             vec![NumberWidth::Width64],
         ),
         PatternTest::new(
-            "lea $reg:r1, [$reg:r1 + $num:n1]",
+            &vec!["lea rax, [rip + $num:n1]"],
+            vec![NumberWidth::Width64],
+        ),
+        PatternTest::new(&vec!["lea $reg:r1, [rip]"], vec![NumberWidth::Width64]),
+        PatternTest::new(
+            &vec!["lea $reg:r1, [rip + $num:n1]"],
+            vec![NumberWidth::Width64],
+        ),
+        PatternTest::new(
+            &vec!["lea $reg:r1, [$reg:r2 + $num:n1]"],
+            vec![NumberWidth::Width64],
+        ),
+        PatternTest::new(
+            &vec!["lea $reg:r1, [$reg:r1 + $num:n1]"],
+            vec![NumberWidth::Width64],
+        ),
+    ];
+    quickcheck(pattern_tests);
+}
+
+#[test]
+fn quickcheck_test_multiple_instruction_pattern() {
+    env_logger::try_init().ok();
+    let pattern_tests = vec![
+        PatternTest::new(
+            &vec!["lea eax, [rip + $num:n1]", "lea edx, [rip + $num:n1]"],
+            vec![NumberWidth::Width64],
+        ),
+        PatternTest::new(
+            &vec!["lea $reg:r1, [rip + $num:n1]", "xchg $reg:r1, [rsp]", "ret"],
             vec![NumberWidth::Width64],
         ),
     ];
@@ -52,14 +77,17 @@ fn quickcheck_tests() {
 }
 
 struct PatternTest {
-    matcher: InstructionPatternMatcher,
+    matcher: ObfuscationPatternMatcher,
     blacklisted_widths: Vec<NumberWidth>,
 }
 
 impl PatternTest {
-    fn new(pattern: &str, blacklisted_widths: Vec<NumberWidth>) -> PatternTest {
-        let pattern = InstructionPattern::from_str(pattern).unwrap();
-        let matcher = InstructionPatternMatcher::new(pattern).unwrap();
+    fn new(pattern: &[&str], blacklisted_widths: Vec<NumberWidth>) -> PatternTest {
+        let pattern = pattern
+            .iter()
+            .map(|p| InstructionPattern::from_str(p).unwrap())
+            .collect();
+        let matcher = ObfuscationPatternMatcher::new(pattern).unwrap();
         PatternTest {
             blacklisted_widths,
             matcher,
@@ -71,11 +99,22 @@ impl PatternTest {
 
 impl Testable for PatternTest {
     fn result<G: Gen>(&self, gen: &mut G) -> TestResult {
-        let mut instance = self.matcher.pattern().pattern().to_owned();
+        let mut instance = self
+            .matcher
+            .instruction_patterns()
+            .iter()
+            .map(|p| p.pattern().to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
 
         let variable_instantiations = {
             let mut vec = Vec::new();
-            for variable in self.matcher.pattern().variables() {
+            for variable in self
+                .matcher
+                .instruction_patterns()
+                .iter()
+                .flat_map(|p| p.variables())
+            {
                 if vec.iter().any(|v: &InstantiatedVariable| {
                     v.name() == variable.name() && v.typee() == variable.typee()
                 }) {
@@ -112,20 +151,26 @@ impl Testable for PatternTest {
         debug!("test instance: {}", instance);
 
         if let Ok(assembled) = keystone_assemble(instance) {
-            match self.matcher.match_against(&assembled.bytes) {
-                Some((found_variables, matched_bytes)) => {
-                    assert!(u32::from(matched_bytes) == assembled.size);
-                    debug!("expected variables: {:x?}", variable_instantiations);
-                    debug!("found variables: {:x?}", found_variables);
-                    for variable_instantiation in variable_instantiations {
-                        assert!(
-                            found_variables.contains(&variable_instantiation),
-                            "failed to find instantiated variable: {:x?}",
-                            variable_instantiation
-                        );
-                    }
-                }
-                None => panic!("Didn't match pattern!"),
+            let matches = self.matcher.match_against(&assembled.bytes);
+            assert!(
+                matches.len() == 1,
+                "didn't match pattern exactly once but matched it {} times",
+                matches.len()
+            );
+
+            let (ref found_variables, start, end) = matches[0];
+
+            assert_eq!(start, 0);
+            assert_eq!(end, assembled.size as usize);
+
+            debug!("expected variables: {:x?}", variable_instantiations);
+            debug!("found variables: {:x?}", found_variables);
+            for variable_instantiation in variable_instantiations {
+                assert!(
+                    found_variables.contains(&variable_instantiation),
+                    "failed to find instantiated variable: {:x?}",
+                    variable_instantiation
+                );
             }
             TestResult::passed()
         } else {
