@@ -1,6 +1,6 @@
 extern crate env_logger;
 extern crate goblin;
-extern crate unhappy_arxan;
+extern crate pattern_based_deobfuscator;
 
 use std::fs;
 use std::str::FromStr;
@@ -8,7 +8,7 @@ use std::str::FromStr;
 use goblin::pe::PE;
 use goblin::Object;
 
-use unhappy_arxan::pattern::*;
+use pattern_based_deobfuscator::pattern::*;
 
 fn main() {
     env_logger::init();

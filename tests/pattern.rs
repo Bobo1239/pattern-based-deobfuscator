@@ -4,15 +4,15 @@ extern crate env_logger;
 extern crate log;
 extern crate quickcheck;
 extern crate regex;
-extern crate unhappy_arxan;
+extern crate pattern_based_deobfuscator;
 
 use std::ops::Deref;
 use std::str::FromStr;
 
 use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult, Testable};
 
-use unhappy_arxan::keystone_assemble;
-use unhappy_arxan::pattern::*;
+use pattern_based_deobfuscator::keystone_assemble;
+use pattern_based_deobfuscator::pattern::*;
 
 #[cfg(debug_assertions)]
 const QUICKCHECK_TESTS: u64 = 1_000;
