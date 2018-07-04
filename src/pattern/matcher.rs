@@ -14,7 +14,7 @@ impl ObfuscationPatternMatcher {
     ) -> Result<ObfuscationPatternMatcher, PatternError> {
         let instruction_pattern_matchers = instruction_patterns
             .into_iter()
-            .map(|ip| InstructionPatternMatcher::new(ip))
+            .map(InstructionPatternMatcher::new)
             .collect::<Result<Vec<_>, _>>()?;
 
         // regex flags:

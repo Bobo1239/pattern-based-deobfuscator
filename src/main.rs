@@ -1,6 +1,5 @@
 extern crate env_logger;
 extern crate goblin;
-extern crate regex;
 extern crate unhappy_arxan;
 
 use std::fs;
@@ -8,7 +7,6 @@ use std::str::FromStr;
 
 use goblin::pe::PE;
 use goblin::Object;
-use regex::bytes::Regex;
 
 use unhappy_arxan::pattern::*;
 
@@ -63,7 +61,7 @@ fn main() {
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {
-            for (i, (variables, start, end)) in obfuscation_pattern_matcher
+            for (i, (_variables, start, end)) in obfuscation_pattern_matcher
                 .match_against(span.code)
                 .iter()
                 .enumerate()
