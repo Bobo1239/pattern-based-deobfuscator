@@ -4,6 +4,7 @@ extern crate regex;
 extern crate unhappy_arxan;
 
 use std::fs;
+use std::str::FromStr;
 
 use goblin::pe::PE;
 use goblin::Object;
@@ -39,13 +40,10 @@ use unhappy_arxan::pattern::*;
 fn main() {
     env_logger::init();
 
-    let database = vec![
-        (
-            vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"],
-            vec!["jmp [rip + $num:var_name1]"],
-        ),
-        (vec!["add eax, $num:var"], vec!["add eax, $num:var"]),
-    ];
+    let database = vec![(
+        vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"],
+        vec!["jmp [rip + $num:var_name1]"],
+    )];
 
     let buffer = fs::read("sample.exe").unwrap();
     let spans = match Object::parse(&buffer).unwrap() {
@@ -56,28 +54,29 @@ fn main() {
         Object::Unknown(magic) => panic!("unknown magic: {:#x}", magic),
     };
 
-    // TODO: disambiguate capture group names for the same variable name
-    let mut final_regex = "(?s-u)".to_string();
-    for instruction in &database[0].0 {
-        println!("instruction: {:?}", instruction);
-        let _pattern: InstructionPattern = instruction.parse().expect("Failed to parse pattern!");
-        final_regex += "";
-        // final_regex += &encodings_to_regex(&pattern.find_encodings().unwrap()); // FIXME
-    }
-
-    println!("REGEX: {}", final_regex);
-    let final_regex = Regex::new(&final_regex).unwrap();
-    for span in spans {
-        for (i, matchh) in final_regex.find_iter(&span.code).enumerate() {
-            println!(
-                "{}: 0x{:x} - 0x{:x}",
-                i,
-                matchh.start() + span.vaddr as usize,
-                matchh.end() + span.vaddr as usize
-            );
+    for entry in database {
+        let instruction_patterns = entry
+            .0
+            .iter()
+            .map(|s| InstructionPattern::from_str(s).unwrap())
+            .collect();
+        let obfuscation_pattern_matcher =
+            ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
+        for span in &spans {
+            for (i, (variables, start, end)) in obfuscation_pattern_matcher
+                .match_against(span.code)
+                .iter()
+                .enumerate()
+            {
+                println!(
+                    "{}: 0x{:x} - 0x{:x}",
+                    i,
+                    start + span.vaddr as usize,
+                    end + span.vaddr as usize
+                );
+            }
         }
     }
-    println!("REGEX: {}", final_regex);
 }
 
 struct Span<'a> {

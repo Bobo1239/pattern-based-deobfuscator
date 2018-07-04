@@ -85,7 +85,9 @@ impl ObfuscationPatternMatcher {
                                         None | Some(CaptureGroupPurpose::NewEncoding(_)) => {
                                             // Also add register variable instantiations
                                             for (variable_name, register) in register_mappings {
-                                                // FIXME: first check if there's already in instantiation for this variable
+                                                // FIXME: first check if there's already in instantiation for
+                                                // this variable and if there is, make sure it has the same value
+                                                // Change to two HashMaps? (one for each var type)
                                                 instantiated_variables.push(
                                                     InstantiatedVariable::new_register(
                                                         variable_name.to_string(),
@@ -118,7 +120,8 @@ impl ObfuscationPatternMatcher {
                                                 value <<= 8;
                                                 value += u64::from(*byte);
                                             }
-                                            // FIXME: first check if there's already in instantiation for this variable
+                                            // FIXME: first check if there's already in instantiation for
+                                            // this variable and if there is, make sure it has the same value
                                             instantiated_variables.push(
                                                 InstantiatedVariable::new_number(
                                                     variable_name.to_string(),
