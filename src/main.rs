@@ -10,31 +10,6 @@ use goblin::Object;
 
 use unhappy_arxan::pattern::*;
 
-// TODO:
-//     - allow user to specify blacklist regions which may not be touched
-//     - match pattern; verify variables are actually same content later; avoid pcre
-//     - Some instructions have 64 bit immeditates/displacements
-//     - how to handle SIB
-//     - ignore NOPs when matching pattern (also add NOP patterns which get replaced with a normal NOP)
-//     - determine basic blocks (only one entrace/leader) -> simplify jump chains ->
-//     - match in these "real" basic blocks (make this a sub-pass)
-//     - multi-pass
-
-// NOTE:
-//     - LOCK works as Keystone just emits the lock prefix which automatically gets recognized as a prefix for the next instruction
-
-// FUTURE:
-//     - pattern consisting of labeled blocks (for switches etc.)
-//     - arbitrary NOPs (multiple ways to encode NOP?) between pattern instructions
-//         - This will get resolved if we have NOP patterns and multi-pass deobfuscation
-//     - Segmented memory addressing
-//     - How to generically handle obfuscation which manually loads up e.g. AL,then AH ,and then uses EAX...
-
-// DOCUMENTATION:
-//     - Variable operands may not be negated in the pattern specifiation (e.g. `lea rbp, [rip - $num:var_name1]`)
-//     - $num only supported for operand/displacement; not usable for e.g. scaled addressing
-//     - retn replaced with ret (https://github.com/keystone-engine/keypatch/blob/master/keypatch.py#L541)
-
 fn main() {
     env_logger::init();
 
@@ -52,6 +27,7 @@ fn main() {
         Object::Unknown(magic) => panic!("unknown magic: {:#x}", magic),
     };
 
+    let mut i = 1;
     for entry in database {
         let instruction_patterns = entry
             .0
@@ -61,10 +37,9 @@ fn main() {
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {
-            for (i, (_variables, start, end)) in obfuscation_pattern_matcher
+            for (_variables, start, end) in obfuscation_pattern_matcher
                 .match_against(span.code)
                 .iter()
-                .enumerate()
             {
                 println!(
                     "{}: 0x{:x} - 0x{:x}",
@@ -72,9 +47,12 @@ fn main() {
                     start + span.vaddr as usize,
                     end + span.vaddr as usize
                 );
+                i += 1;
             }
         }
     }
+
+    println!("length of code sections: {:.2} MB", spans.iter().map(|span| span.code.len()).fold(0, |acc, x| acc + x) as f64 / 1024.0 / 1024.0)
 }
 
 struct Span<'a> {
