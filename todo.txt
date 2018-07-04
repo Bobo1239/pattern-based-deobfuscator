@@ -1,0 +1,58 @@
+Short Term
+    Write (better) README
+    Check that variables with the same name have the same value
+    $len:variable type
+    Pattern database from file
+    CLI
+    More test coverage
+        especially negative test cases
+    Output rewritten binary
+
+TODO
+    Multiple number variables per instruction pattern
+    Cleanup & improve error handling
+    Accumulate a pattern database
+        extract patterns from research papers
+        collect patterns from Arxan sample
+    Multi-Pass
+        only the one kind of NOPs (the shortest) is allowed to be between each instruction pattern
+        add a pattern which translates other kinds of NOP to the one kind
+
+Future
+    Benchmark & optimization
+    Remove NOPs between instruction sequences in one basic block (consider jump chains)
+        requires CFG so we don't destroy it
+        binary -> CFG -> CFG without jump chains
+    Arbitray constraints between variables (new optional section after pattern and replacement: constraints)
+        e.g. $num:var1 + $num:var2 = $num:var3
+
+paper note:
+    mention keystone silently masking too large operand (lea rip, 64bit value)
+    benchmarks
+    currently only general purpose regs
+    weakness: interleaved obfuscation patterns
+
+// TODO:
+//     - allow user to specify blacklist regions which may not be touched
+//     - match pattern; verify variables are actually same content later; avoid pcre
+//     - Some instructions have 64 bit immeditates/displacements
+//     - how to handle SIB
+//     - ignore NOPs when matching pattern (also add NOP patterns which get replaced with a normal NOP)
+//     - determine basic blocks (only one entrace/leader) -> simplify jump chains ->
+//     - match in these "real" basic blocks (make this a sub-pass)
+//     - multi-pass
+
+// NOTE:
+//     - LOCK works as Keystone just emits the lock prefix which automatically gets recognized as a prefix for the next instruction
+
+// FUTURE:
+//     - pattern consisting of labeled blocks (for switches etc.)
+//     - arbitrary NOPs (multiple ways to encode NOP?) between pattern instructions
+//         - This will get resolved if we have NOP patterns and multi-pass deobfuscation
+//     - Segmented memory addressing
+//     - How to generically handle obfuscation which manually loads up e.g. AL,then AH ,and then uses EAX...
+
+// DOCUMENTATION:
+//     - Variable operands may not be negated in the pattern specifiation (e.g. `lea rbp, [rip - $num:var_name1]`)
+//     - $num only supported for operand/displacement; not usable for e.g. scaled addressing
+//     - retn replaced with ret (https://github.com/keystone-engine/keypatch/blob/master/keypatch.py#L541)
