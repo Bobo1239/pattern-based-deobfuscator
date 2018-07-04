@@ -1,6 +1,6 @@
-mod finder;
+mod matcher;
 
-pub use self::finder::*;
+pub use self::matcher::*;
 
 use std::fmt::{self, Display};
 use std::hash::Hash;
