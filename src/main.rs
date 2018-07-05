@@ -63,9 +63,7 @@ fn main() {
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {
-            for (_variables, start, end) in
-                obfuscation_pattern_matcher.match_against(span.code).iter()
-            {
+            for (_variables, start, end) in &obfuscation_pattern_matcher.match_against(span.code) {
                 println!(
                     "{}: 0x{:x} - 0x{:x}",
                     i,
@@ -79,10 +77,7 @@ fn main() {
 
     println!(
         "length of code sections: {:.2} MB",
-        spans
-            .iter()
-            .map(|span| span.code.len())
-            .fold(0, |acc, x| acc + x) as f64 / 1024.0 / 1024.0
+        spans.iter().map(|span| span.code.len()).sum::<usize>() as f64 / 1024.0 / 1024.0
     )
 }
 

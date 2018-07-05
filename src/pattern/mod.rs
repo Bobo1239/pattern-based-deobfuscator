@@ -424,7 +424,7 @@ mod tests {
                 pattern.parse(),
                 Ok(InstructionPattern {
                     pattern: pattern.to_string(),
-                    variables: variables,
+                    variables,
                 })
             );
         }

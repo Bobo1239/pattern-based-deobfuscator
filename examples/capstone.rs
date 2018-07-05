@@ -27,7 +27,7 @@ fn main() {
                 0xE4, // 1110_0100 addr
                 0xFF, // 1111_1111 addr
             ],
-            0x140C693BD,
+            0x1_40C6_93BD,
         ).unwrap();
     let instruction = instruction.iter().next().unwrap();
 
@@ -36,7 +36,7 @@ fn main() {
     let ops = arch_detail.operands();
 
     fn reg_names<T: Iterator<Item = RegId>>(cs: &Capstone, regs: T) -> String {
-        let names: Vec<String> = regs.map(|x| cs.reg_name(x.into()).unwrap()).collect();
+        let names: Vec<String> = regs.map(|x| cs.reg_name(x).unwrap()).collect();
         names.join(", ")
     }
 

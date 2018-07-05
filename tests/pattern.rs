@@ -35,25 +35,19 @@ fn quickcheck(tests: Vec<PatternTest>) {
 fn quickcheck_test_one_instruction_pattern() {
     env_logger::try_init().ok();
     let pattern_tests = vec![
+        PatternTest::new(&["lea eax, [rip + $num:n1]"], vec![NumberWidth::Width64]),
+        PatternTest::new(&["lea rax, [rip + $num:n1]"], vec![NumberWidth::Width64]),
+        PatternTest::new(&["lea $reg:r1, [rip]"], vec![NumberWidth::Width64]),
         PatternTest::new(
-            &vec!["lea eax, [rip + $num:n1]"],
+            &["lea $reg:r1, [rip + $num:n1]"],
             vec![NumberWidth::Width64],
         ),
         PatternTest::new(
-            &vec!["lea rax, [rip + $num:n1]"],
-            vec![NumberWidth::Width64],
-        ),
-        PatternTest::new(&vec!["lea $reg:r1, [rip]"], vec![NumberWidth::Width64]),
-        PatternTest::new(
-            &vec!["lea $reg:r1, [rip + $num:n1]"],
+            &["lea $reg:r1, [$reg:r2 + $num:n1]"],
             vec![NumberWidth::Width64],
         ),
         PatternTest::new(
-            &vec!["lea $reg:r1, [$reg:r2 + $num:n1]"],
-            vec![NumberWidth::Width64],
-        ),
-        PatternTest::new(
-            &vec!["lea $reg:r1, [$reg:r1 + $num:n1]"],
+            &["lea $reg:r1, [$reg:r1 + $num:n1]"],
             vec![NumberWidth::Width64],
         ),
     ];
@@ -65,11 +59,11 @@ fn quickcheck_test_multiple_instruction_pattern() {
     env_logger::try_init().ok();
     let pattern_tests = vec![
         PatternTest::new(
-            &vec!["lea eax, [rip + $num:n1]", "lea edx, [rip + $num:n1]"],
+            &["lea eax, [rip + $num:n1]", "lea edx, [rip + $num:n1]"],
             vec![NumberWidth::Width64],
         ),
         PatternTest::new(
-            &vec!["lea $reg:r1, [rip + $num:n1]", "xchg $reg:r1, [rsp]", "ret"],
+            &["lea $reg:r1, [rip + $num:n1]", "xchg $reg:r1, [rsp]", "ret"],
             vec![NumberWidth::Width64],
         ),
     ];
@@ -115,10 +109,10 @@ impl Testable for PatternTest {
                 .iter()
                 .flat_map(|p| p.variables())
             {
-                if vec.iter().any(|v: &InstantiatedVariable| {
+                let variable_already_instantiated = vec.iter().any(|v: &InstantiatedVariable| {
                     v.name() == variable.name() && v.typee() == variable.typee()
-                }) {
-                    // Variable is already instantiated
+                });
+                if variable_already_instantiated {
                     continue;
                 }
 
@@ -179,6 +173,7 @@ impl Testable for PatternTest {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(enum_variant_names))]
 #[derive(Debug, Clone)]
 enum Number {
     Width8(u8),
@@ -230,6 +225,7 @@ impl Arbitrary for Number {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(enum_variant_names))]
 #[derive(Debug, PartialEq)]
 enum NumberWidth {
     Width8,
