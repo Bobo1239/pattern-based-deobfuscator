@@ -1,17 +1,43 @@
 extern crate env_logger;
 extern crate goblin;
 extern crate pattern_based_deobfuscator;
+#[macro_use]
+extern crate structopt;
 
 use std::fs;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use goblin::pe::PE;
 use goblin::Object;
+use structopt::StructOpt;
 
 use pattern_based_deobfuscator::pattern::*;
 
+#[derive(Debug, StructOpt)]
+#[structopt()]
+struct Opt {
+    /// Verbose output
+    #[structopt(short = "v", long = "verbose")]
+    verbose: bool,
+    /// The pattern database to use
+    #[structopt(
+        short = "d", long = "database", parse(from_os_str), default_value = "pattern_database.json"
+    )]
+    pattern_database: PathBuf,
+    /// Deobfucated output binary; defaults to <input>.deobf.exe
+    #[structopt(parse(from_os_str), short = "o", long = "output")]
+    output: Option<PathBuf>,
+    /// Obfuscated input
+    #[structopt(parse(from_os_str))]
+    input: PathBuf,
+}
+
 fn main() {
     env_logger::init();
+
+    let opt = Opt::from_args();
+    println!("{:?}", opt);
 
     let database = vec![(
         vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"], // pattern
@@ -37,9 +63,8 @@ fn main() {
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {
-            for (_variables, start, end) in obfuscation_pattern_matcher
-                .match_against(span.code)
-                .iter()
+            for (_variables, start, end) in
+                obfuscation_pattern_matcher.match_against(span.code).iter()
             {
                 println!(
                     "{}: 0x{:x} - 0x{:x}",
@@ -52,7 +77,13 @@ fn main() {
         }
     }
 
-    println!("length of code sections: {:.2} MB", spans.iter().map(|span| span.code.len()).fold(0, |acc, x| acc + x) as f64 / 1024.0 / 1024.0)
+    println!(
+        "length of code sections: {:.2} MB",
+        spans
+            .iter()
+            .map(|span| span.code.len())
+            .fold(0, |acc, x| acc + x) as f64 / 1024.0 / 1024.0
+    )
 }
 
 struct Span<'a> {

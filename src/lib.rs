@@ -13,12 +13,14 @@ extern crate regex;
 extern crate failure_derive;
 extern crate fxhash;
 extern crate parking_lot;
+extern crate serde;
 
 #[cfg(test)]
 extern crate env_logger;
 
 pub mod byteorder_ext;
 pub mod pattern;
+pub mod pattern_database;
 
 use keystone::{Arch, AsmResult, Keystone};
 use parking_lot::Mutex;

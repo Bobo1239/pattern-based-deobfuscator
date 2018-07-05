@@ -2,9 +2,9 @@ extern crate byteorder;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
+extern crate pattern_based_deobfuscator;
 extern crate quickcheck;
 extern crate regex;
-extern crate pattern_based_deobfuscator;
 
 use std::ops::Deref;
 use std::str::FromStr;
