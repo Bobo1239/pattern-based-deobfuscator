@@ -22,8 +22,26 @@
   },
   {
     "pattern": [
+      "mov [rsp - 8], $reg:r1",
+      "lea rsp, [rsp - 8]"
+    ],
+    "replacement": [
+      "push $reg:r1"
+    ]
+  },
+  {
+    "pattern": [
       "mov $reg:r1, [rsp]",
       "lea rsp, [rsp + 8]"
+    ],
+    "replacement": [
+      "pop $reg:r1"
+    ]
+  },
+  {
+    "pattern": [
+      "lea rsp, [rsp + 8]",
+      "mov $reg:r1, [rsp - 8]"
     ],
     "replacement": [
       "pop $reg:r1"

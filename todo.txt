@@ -10,6 +10,7 @@ TODO
         especially negative test cases
     Multiple number variables per instruction pattern
     Cleanup & improve error handling
+    Add ability to name patterns (for easier debugging)
     Accumulate a pattern database
         extract patterns from research papers
         collect patterns from Arxan sample
