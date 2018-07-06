@@ -1,4 +1,6 @@
-# TBD
+# PBD: Pattern-Based Deobfuscator
+
+README is WIP.
 
 ## License
 
