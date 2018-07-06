@@ -65,7 +65,6 @@ impl ObfuscationPatternMatcher {
                         match self.0.iter().find(|var| var.name() == new_variable.name()) {
                             Some(existing) => &new_variable == existing,
                             None => {
-                                info!("Rejected match because variable value changed.");
                                 self.0.push(new_variable);
                                 true
                             }
@@ -101,15 +100,13 @@ impl ObfuscationPatternMatcher {
                                         None | Some(CaptureGroupPurpose::NewEncoding(_)) => {
                                             // Also add register variable instantiations
                                             for (variable_name, register) in register_mappings {
-                                                // FIXME: first check if there's already in instantiation for
-                                                // this variable and if there is, make sure it has the same value
-                                                // Change to two HashMaps? (one for each var type)
                                                 if !instantiated_variables.try_add(
                                                     InstantiatedVariable::new_register(
                                                         variable_name.to_string(),
                                                         *register,
                                                     ),
                                                 ) {
+                                                    info!("Rejected match because variable value changed.");
                                                     return None;
                                                 }
                                             }
@@ -138,14 +135,13 @@ impl ObfuscationPatternMatcher {
                                                 value <<= 8;
                                                 value += u64::from(*byte);
                                             }
-                                            // FIXME: first check if there's already in instantiation for
-                                            // this variable and if there is, make sure it has the same value
                                             if !instantiated_variables.try_add(
                                                 InstantiatedVariable::new_number(
                                                     variable_name.to_string(),
                                                     value,
                                                 ),
                                             ) {
+                                                info!("Rejected match because variable value changed.");
                                                 return None;
                                             }
                                         }
@@ -274,6 +270,20 @@ impl InstantiatedVariable {
         match self {
             InstantiatedVariable::Number(..) => VariableType::Number,
             InstantiatedVariable::Register(..) => VariableType::Register,
+        }
+    }
+
+    pub fn as_variable(&self) -> Variable {
+        match self {
+            InstantiatedVariable::Number(name, _) => Variable::new(name, VariableType::Number),
+            InstantiatedVariable::Register(name, _) => Variable::new(name, VariableType::Register),
+        }
+    }
+
+    pub fn value(&self) -> String {
+        match self {
+            InstantiatedVariable::Number(_, number) => format!("0x{:x}", number),
+            InstantiatedVariable::Register(_, register) => register.name().to_string(),
         }
     }
 }

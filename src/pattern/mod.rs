@@ -409,7 +409,7 @@ impl<'de> Deserialize<'de> for InstructionPattern {
             type Value = InstructionPattern;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("an integer between -2^31 and 2^31")
+                formatter.write_str("a valid instruction pattern")
             }
 
             fn visit_str<E>(self, value: &str) -> Result<InstructionPattern, E>

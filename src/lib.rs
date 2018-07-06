@@ -25,6 +25,8 @@ pub mod byteorder_ext;
 pub mod pattern;
 pub mod pattern_database;
 
+pub use keystone::Error as KeystoneError;
+
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
@@ -33,7 +35,7 @@ use keystone::{Arch, AsmResult, Keystone};
 use parking_lot::Mutex;
 use pattern_database::PatternDatabase;
 
-pub fn keystone_assemble(assembly: String) -> Result<AsmResult, keystone::Error> {
+pub fn keystone_assemble(assembly: String) -> Result<AsmResult, KeystoneError> {
     lazy_static! {
         static ref KEYSTONE: Mutex<Keystone> = Mutex::new(
             Keystone::new(Arch::X86, keystone::MODE_64)
