@@ -1,10 +1,9 @@
 Short Term
-    $len:variable type
-    Output rewritten binary
-        may have to use nasm as keystone doesn't support $ (https://www.nasm.us/xdoc/2.13.03/html/nasmdoc3.html#section-3.5)
     Write (better) README
         mention nightly requirement; also say that this can be lifted once refactoring is done
         build & usage instruction
+    $len:variable type
+    use nasm for replacement output
 
 TODO
     More test coverage
