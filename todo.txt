@@ -27,11 +27,8 @@ Future
     Arbitray constraints between variables (new optional section after pattern and replacement: constraints)
         e.g. $num:var1 + $num:var2 = $num:var3
 
-paper note:
-    mention keystone silently masking too large operand (lea rip, 64bit value)
-    benchmarks
-    currently only general purpose regs
-    weakness: interleaved obfuscation patterns
+Notes
+    keystone silently masks operand which are too large (lea eax, [rip + 64bit value])
 
 // TODO:
 //     - allow user to specify blacklist regions which may not be touched
