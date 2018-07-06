@@ -295,7 +295,7 @@ impl InstructionPattern {
                         let instantiations = ["0x0F", "0xDD0F", "0xDDDDDD0F", "0xDDDDDDDDDDDDDD0F"];
                         instantiations
                             .iter()
-                            .map(|ref instantiation| {
+                            .map(|instantiation| {
                                 instantiate_one_number_variables_and_detect_encoding(
                                     &pattern,
                                     &instance,
@@ -305,7 +305,7 @@ impl InstructionPattern {
                             })
                             .collect()
                     }
-                    _ => unimplemented!(),
+                    _ => unimplemented!("Multiple number variables in an instruction patterns aren't supported yet!"),
                 }
             };
 

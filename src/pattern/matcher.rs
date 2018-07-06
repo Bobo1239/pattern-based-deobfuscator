@@ -57,7 +57,23 @@ impl ObfuscationPatternMatcher {
                 // need to offset the capture group purpose index as the indices in the
                 // `InstructionPatternMatcher`s are only valid in their own capture group
                 let mut capture_group_offset = 1;
-                let mut instantiated_variables = Vec::new();
+
+                struct InstantiatedVariableStore(Vec<InstantiatedVariable>);
+                impl InstantiatedVariableStore {
+                    fn try_add(&mut self, new_variable: InstantiatedVariable) -> bool {
+                        // TODO: change to better data structure?
+                        match self.0.iter().find(|var| var.name() == new_variable.name()) {
+                            Some(existing) => &new_variable == existing,
+                            None => {
+                                info!("Rejected match because variable value changed.");
+                                self.0.push(new_variable);
+                                true
+                            }
+                        }
+                    }
+                }
+
+                let mut instantiated_variables = InstantiatedVariableStore(Vec::new());
 
                 'outer: for k in 0..self.instruction_pattern_matchers.len() {
                     trace!("capture_group_offset: {:?}", capture_group_offset);
@@ -88,17 +104,19 @@ impl ObfuscationPatternMatcher {
                                                 // FIXME: first check if there's already in instantiation for
                                                 // this variable and if there is, make sure it has the same value
                                                 // Change to two HashMaps? (one for each var type)
-                                                instantiated_variables.push(
+                                                if !instantiated_variables.try_add(
                                                     InstantiatedVariable::new_register(
                                                         variable_name.to_string(),
                                                         *register,
                                                     ),
-                                                );
+                                                ) {
+                                                    return None;
+                                                }
                                             }
                                             if k == self.instruction_pattern_matchers.len() - 1 {
                                                 // matched all instruction patterns; success!
                                                 return Some((
-                                                    instantiated_variables,
+                                                    instantiated_variables.0,
                                                     whole_match.start(),
                                                     whole_match.end(),
                                                 ));
@@ -122,12 +140,14 @@ impl ObfuscationPatternMatcher {
                                             }
                                             // FIXME: first check if there's already in instantiation for
                                             // this variable and if there is, make sure it has the same value
-                                            instantiated_variables.push(
+                                            if !instantiated_variables.try_add(
                                                 InstantiatedVariable::new_number(
                                                     variable_name.to_string(),
                                                     value,
                                                 ),
-                                            )
+                                            ) {
+                                                return None;
+                                            }
                                         }
                                         Some(CaptureGroupPurpose::WholeMatch) => unreachable!(),
                                     }

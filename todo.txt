@@ -1,10 +1,11 @@
 Short Term
     print statistics (found/replaced/etc.)
-    Check that variables with the same name have the same value
     $len:variable type
     Output rewritten binary
         may have to use nasm as keystone doesn't support $ (https://www.nasm.us/xdoc/2.13.03/html/nasmdoc3.html#section-3.5)
     Write (better) README
+        mention nightly requirement; also say that this can be lifted once refactoring is done
+        build & usage instruction
 
 TODO
     More test coverage
