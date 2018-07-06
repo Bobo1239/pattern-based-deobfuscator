@@ -3,12 +3,14 @@ extern crate goblin;
 extern crate pattern_based_deobfuscator;
 #[macro_use]
 extern crate structopt;
+extern crate number_prefix;
 
 use std::fs;
 use std::path::PathBuf;
 
 use goblin::pe::PE;
 use goblin::Object;
+use number_prefix::{Prefixed, Standalone};
 use structopt::StructOpt;
 
 use pattern_based_deobfuscator::pattern::*;
@@ -34,15 +36,13 @@ struct Opt {
 
 fn main() {
     env_logger::init();
-
     let opt = Opt::from_args();
-    println!("{:?}", opt);
 
     let pattern_database = pattern_based_deobfuscator::load_pattern_database_from_json(
         opt.pattern_database,
     ).expect("failed to parse pattern database");
 
-    let buffer = fs::read("sample.exe").unwrap();
+    let buffer = fs::read(&opt.input).unwrap();
     let spans = match Object::parse(&buffer).unwrap() {
         Object::PE(pe) => get_code_segments(pe, &buffer),
         Object::Elf(_) | Object::Mach(_) | Object::Archive(_) => {
@@ -51,28 +51,59 @@ fn main() {
         Object::Unknown(magic) => panic!("unknown magic: {:#x}", magic),
     };
 
-    let mut i = 1;
-    for pattern in pattern_database.patterns() {
+    println!(
+        "Deobfuscating {} using a database of {} patterns...",
+        opt.input.display(),
+        pattern_database.patterns().len()
+    );
+
+    let code_size = match number_prefix::binary_prefix(
+        spans.iter().map(|span| span.code.len()).sum::<usize>() as f64,
+    ) {
+        Standalone(bytes) => format!("{} bytes", bytes),
+        Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
+    };
+
+    println!("Combined length of code sections: {}", code_size);
+
+    let mut found_total = 0;
+    let mut replaced_total = 0;
+
+    for (pattern_n, pattern) in pattern_database.patterns().iter().enumerate() {
+        let mut found = 0;
+        let mut replaced = 0;
+
         let instruction_patterns = pattern.instruction_patterns().to_vec();
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {
             for (_variables, start, end) in &obfuscation_pattern_matcher.match_against(span.code) {
-                println!(
-                    "{}: 0x{:x} - 0x{:x}",
-                    i,
-                    start + span.vaddr as usize,
-                    end + span.vaddr as usize
-                );
-                i += 1;
+                found += 1;
+                // println!(
+                //     "{}: 0x{:x} - 0x{:x}",
+                //     i,
+                //     start + span.vaddr as usize,
+                //     end + span.vaddr as usize
+                // );
+                // TODO: replace pattern
             }
         }
+
+        if opt.verbose {
+            println!(
+                "Pattern {} was found {} times and replaced {} times",
+                pattern_n, found, replaced
+            );
+        }
+
+        found_total += found;
+        replaced_total += replaced;
     }
 
     println!(
-        "length of code sections: {:.2} MB",
-        spans.iter().map(|span| span.code.len()).sum::<usize>() as f64 / 1024.0 / 1024.0
-    )
+        "Total: found {} patterns of which {} were sucessfully replaced",
+        found_total, replaced_total
+    );
 }
 
 struct Span<'a> {
