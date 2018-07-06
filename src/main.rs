@@ -107,15 +107,16 @@ fn main() {
             {
                 found += 1;
 
-                if opt.verbose {
-                    println!(
-                        "Found pattern {} ({}): 0x{:x} - 0x{:x}",
-                        pattern_n,
-                        found,
-                        start + span.vaddr as usize,
-                        end + span.vaddr as usize
-                    );
-                }
+                // TODO: only if very verbose
+                // if opt.verbose {
+                //     println!(
+                //         "Found pattern {} ({}): 0x{:x} - 0x{:x}",
+                //         pattern_n,
+                //         found,
+                //         start + span.vaddr as usize,
+                //         end + span.vaddr as usize
+                //     );
+                // }
 
                 if opt.no_output {
                     continue;
@@ -134,18 +135,23 @@ fn main() {
                     replacement_asm = replacement_asm.replace(&variable.to_string(), &value);
                 }
 
+                let offset = span.range_in_file.start;
                 match nasm_assemble(replacement_asm.clone()) {
-                    Ok(asm) => {
+                    Ok(mut asm) => {
                         if asm.len() > end - start {
                             warn!("Can't replace pattern as replacement is larger than original!");
                         }
-                        let offset = span.range_in_file.start;
+                        asm.resize(end - start, 0x90); // 0x90 = xchg eax, eax = nop
                         deobfuscated_binary
                             .splice((offset + start)..(offset + end), asm.into_iter());
                         replaced += 1;
                     }
                     Err(_) => {
-                        warn!("Failed to assemble replacement: {}", replacement_asm);
+                        warn!(
+                            "Failed to assemble replacement: {} (pattern location: 0x{:x})",
+                            replacement_asm,
+                            span.vaddr + start
+                        );
                     }
                 }
             }

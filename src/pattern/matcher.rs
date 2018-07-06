@@ -63,7 +63,14 @@ impl ObfuscationPatternMatcher {
                     fn try_add(&mut self, new_variable: InstantiatedVariable) -> bool {
                         // TODO: change to better data structure?
                         match self.0.iter().find(|var| var.name() == new_variable.name()) {
-                            Some(existing) => &new_variable == existing,
+                            Some(existing) => {
+                                if &new_variable != existing {
+                                    info!("Rejected match because variable value changed; previous: {}; now: {}", existing.value(), new_variable.value());
+                                    false
+                                } else {
+                                    true
+                                }
+                            }
                             None => {
                                 self.0.push(new_variable);
                                 true
@@ -106,7 +113,6 @@ impl ObfuscationPatternMatcher {
                                                         *register,
                                                     ),
                                                 ) {
-                                                    info!("Rejected match because variable value changed.");
                                                     return None;
                                                 }
                                             }
@@ -141,7 +147,6 @@ impl ObfuscationPatternMatcher {
                                                     value,
                                                 ),
                                             ) {
-                                                info!("Rejected match because variable value changed.");
                                                 return None;
                                             }
                                         }

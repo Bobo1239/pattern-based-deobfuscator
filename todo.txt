@@ -3,7 +3,7 @@ Short Term
         mention nightly requirement; also say that this can be lifted once refactoring is done
         build & usage instruction
     $len:variable type
-    use nasm for replacement output
+    Use nasm for replacement output
 
 TODO
     More test coverage
@@ -16,6 +16,9 @@ TODO
     Multi-Pass
         only the one kind of NOPs (the shortest) is allowed to be between each instruction pattern
         add a pattern which translates other kinds of NOP to the one kind
+    More comfortable way to work with relative jumps
+        find a way so no manually summing instruction lengths is necessary
+
 
 Future
     Benchmark & optimization

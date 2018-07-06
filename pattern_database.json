@@ -1,12 +1,32 @@
 [
   {
     "pattern": [
-      "lea rbp, [rip + $num:var_name1]",
+      "push rbp",
+      "lea rbp, [rip + $num:offset]",
       "xchg rbp, [rsp]",
       "ret"
     ],
     "replacement": [
-      "jmp [rip + $num:var_name1]"
+      "push rbp",
+      "jmp [rip + $num:offset]"
+    ]
+  },
+  {
+    "pattern": [
+      "lea rsp, [rsp - 8]",
+      "mov [rsp], $reg:r1"
+    ],
+    "replacement": [
+      "push $reg:r1"
+    ]
+  },
+  {
+    "pattern": [
+      "mov $reg:r1, [rsp]",
+      "lea rsp, [rsp + 8]"
+    ],
+    "replacement": [
+      "pop $reg:r1"
     ]
   }
 ]
