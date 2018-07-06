@@ -14,6 +14,9 @@ extern crate failure_derive;
 extern crate fxhash;
 extern crate parking_lot;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 
 #[cfg(test)]
 extern crate env_logger;
@@ -22,8 +25,13 @@ pub mod byteorder_ext;
 pub mod pattern;
 pub mod pattern_database;
 
+use std::error::Error;
+use std::fs::File;
+use std::path::Path;
+
 use keystone::{Arch, AsmResult, Keystone};
 use parking_lot::Mutex;
+use pattern_database::PatternDatabase;
 
 pub fn keystone_assemble(assembly: String) -> Result<AsmResult, keystone::Error> {
     lazy_static! {
@@ -33,6 +41,14 @@ pub fn keystone_assemble(assembly: String) -> Result<AsmResult, keystone::Error>
         );
     }
     KEYSTONE.lock().asm(assembly, 0)
+}
+
+pub fn load_pattern_database_from_json<P: AsRef<Path>>(
+    path: P,
+) -> Result<PatternDatabase, Box<Error>> {
+    let file = File::open(path)?;
+    let db = serde_json::from_reader(file)?;
+    Ok(db)
 }
 
 #[cfg(test)]

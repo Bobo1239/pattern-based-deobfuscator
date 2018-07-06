@@ -1,7 +1,5 @@
 mod matcher;
 
-pub use self::matcher::*;
-
 use std::fmt::{self, Display};
 use std::hash::Hash;
 use std::str::FromStr;
@@ -9,6 +7,10 @@ use std::str::FromStr;
 use fxhash::FxHashSet;
 use keystone_assemble;
 use regex::Regex;
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+pub use self::matcher::*;
 
 #[derive(Debug, Fail, PartialEq, Eq, Hash)]
 pub enum PatternError {
@@ -18,6 +20,32 @@ pub enum PatternError {
     DetectionError,
     #[fail(display = "assembly of the pattern failed for all variable instantiations")]
     AssemblyFailed,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ObfuscationPattern {
+    pattern: Vec<InstructionPattern>,
+    replacement: Vec<InstructionPattern>,
+}
+
+impl ObfuscationPattern {
+    pub fn new(
+        pattern: Vec<InstructionPattern>,
+        replacement: Vec<InstructionPattern>,
+    ) -> ObfuscationPattern {
+        ObfuscationPattern {
+            pattern,
+            replacement,
+        }
+    }
+
+    pub fn instruction_patterns(&self) -> &[InstructionPattern] {
+        &self.pattern
+    }
+
+    pub fn replacement(&self) -> &[InstructionPattern] {
+        &self.replacement
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -358,6 +386,43 @@ impl FromStr for InstructionPattern {
             pattern: s.to_string(),
             variables: vec,
         })
+    }
+}
+
+impl Serialize for InstructionPattern {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.pattern)
+    }
+}
+
+impl<'de> Deserialize<'de> for InstructionPattern {
+    fn deserialize<D>(deserializer: D) -> Result<InstructionPattern, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct InstructionPatternVisitor;
+
+        impl<'de> Visitor<'de> for InstructionPatternVisitor {
+            type Value = InstructionPattern;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an integer between -2^31 and 2^31")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<InstructionPattern, E>
+            where
+                E: de::Error,
+            {
+                InstructionPattern::from_str(value).map_err(|_| {
+                    E::custom(format!("failed to parse instruction pattern: {}", value))
+                })
+            }
+        }
+
+        deserializer.deserialize_str(InstructionPatternVisitor)
     }
 }
 

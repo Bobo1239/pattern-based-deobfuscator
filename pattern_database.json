@@ -1,0 +1,12 @@
+[
+  {
+    "pattern": [
+      "lea rbp, [rip + $num:var_name1]",
+      "xchg rbp, [rsp]",
+      "ret"
+    ],
+    "replacement": [
+      "jmp [rip + $num:var_name1]"
+    ]
+  }
+]

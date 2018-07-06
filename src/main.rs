@@ -6,7 +6,6 @@ extern crate structopt;
 
 use std::fs;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use goblin::pe::PE;
 use goblin::Object;
@@ -39,10 +38,9 @@ fn main() {
     let opt = Opt::from_args();
     println!("{:?}", opt);
 
-    let database = vec![(
-        vec!["lea rbp, [rip + $num:var_name1]", "xchg rbp, [rsp]", "ret"], // pattern
-        vec!["jmp [rip + $num:var_name1]"],                                // replacement
-    )];
+    let pattern_database = pattern_based_deobfuscator::load_pattern_database_from_json(
+        opt.pattern_database,
+    ).expect("failed to parse pattern database");
 
     let buffer = fs::read("sample.exe").unwrap();
     let spans = match Object::parse(&buffer).unwrap() {
@@ -54,12 +52,8 @@ fn main() {
     };
 
     let mut i = 1;
-    for entry in database {
-        let instruction_patterns = entry
-            .0
-            .iter()
-            .map(|s| InstructionPattern::from_str(s).unwrap())
-            .collect();
+    for pattern in pattern_database.patterns() {
+        let instruction_patterns = pattern.instruction_patterns().to_vec();
         let obfuscation_pattern_matcher =
             ObfuscationPatternMatcher::new(instruction_patterns).unwrap();
         for span in &spans {

@@ -1,14 +1,14 @@
 Short Term
-    Write (better) README
+    print statistics (found/replaced/etc.)
     Check that variables with the same name have the same value
     $len:variable type
-    Pattern database from file
-    CLI
-    More test coverage
-        especially negative test cases
     Output rewritten binary
+        may have to use nasm as keystone doesn't support $ (https://www.nasm.us/xdoc/2.13.03/html/nasmdoc3.html#section-3.5)
+    Write (better) README
 
 TODO
+    More test coverage
+        especially negative test cases
     Multiple number variables per instruction pattern
     Cleanup & improve error handling
     Accumulate a pattern database
@@ -41,9 +41,6 @@ paper note:
 //     - determine basic blocks (only one entrace/leader) -> simplify jump chains ->
 //     - match in these "real" basic blocks (make this a sub-pass)
 //     - multi-pass
-
-// NOTE:
-//     - LOCK works as Keystone just emits the lock prefix which automatically gets recognized as a prefix for the next instruction
 
 // FUTURE:
 //     - pattern consisting of labeled blocks (for switches etc.)
