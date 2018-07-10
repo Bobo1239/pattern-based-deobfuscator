@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Boris-Chengbiao Zhou <bobo1239@web.de>"]
 license = "MIT OR Apache-2.0"
 
+[[bin]]
+name = "pbd"
+path = "src/main.rs"
+
 [dependencies]
 keystone = "0.9.0"
 goblin = "0.0.15"
@@ -21,6 +25,7 @@ serde_json = "1.0.19"
 structopt = "0.2.8"
 serde_derive = "1.0.69"
 number_prefix = "0.2.8"
+tempfile = "3.0.2"
 
 [dev-dependencies]
 capstone = "0.4.0"

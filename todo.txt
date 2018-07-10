@@ -2,10 +2,15 @@ Short Term
     Write (better) README
         mention nightly requirement; also say that this can be lifted once refactoring is done
         build & usage instruction
-    $len:variable type
+    $offset:name / $len:variable type
     Use nasm for replacement output
+    Refactor
 
 TODO
+    Switch to Rust stable
+    Performance
+        Job queue for replacement assembly?; then dispatch to multiple threads
+        Parallelize ObfuscationPatternMatcher compilation
     More test coverage
         especially negative test cases
     Multiple number variables per instruction pattern
