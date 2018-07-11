@@ -16,21 +16,24 @@ use goblin::Object;
 use number_prefix::{Prefixed, Standalone};
 use structopt::StructOpt;
 
+use pattern_based_deobfuscator::nasm_assemble;
 use pattern_based_deobfuscator::pattern::*;
-use pattern_based_deobfuscator::KeystoneError;
 
 #[derive(Debug, StructOpt)]
 #[structopt()]
 struct Opt {
     /// Verbose output
-    #[structopt(short = "v", long = "verbose")]
-    verbose: bool,
+    #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
+    verbosity: u8,
     /// Disable output of deobfuscated binary
     #[structopt(short = "n", long = "no-output")]
     no_output: bool,
     /// The pattern database to use
     #[structopt(
-        short = "d", long = "database", parse(from_os_str), default_value = "pattern_database.json"
+        short = "d",
+        long = "database",
+        parse(from_os_str),
+        default_value = "pattern_database.json"
     )]
     pattern_database: PathBuf,
     /// Deobfucated output binary; defaults to <input>.deobf.exe
@@ -107,16 +110,15 @@ fn main() {
             {
                 found += 1;
 
-                // TODO: only if very verbose
-                // if opt.verbose {
-                //     println!(
-                //         "Found pattern {} ({}): 0x{:x} - 0x{:x}",
-                //         pattern_n,
-                //         found,
-                //         start + span.vaddr as usize,
-                //         end + span.vaddr as usize
-                //     );
-                // }
+                if opt.verbosity >= 2 {
+                    println!(
+                        "Found pattern {} ({}): 0x{:x} - 0x{:x}",
+                        pattern_n,
+                        found,
+                        start + span.vaddr,
+                        end + span.vaddr
+                    );
+                }
 
                 if opt.no_output {
                     continue;
@@ -129,6 +131,8 @@ fn main() {
                     .collect::<Vec<_>>()
                     .join("\n");
 
+                trace!("Variable instantiations: {:?}", instantiated_variables);
+
                 for instantiated_variable in instantiated_variables {
                     let variable = instantiated_variable.as_variable();
                     let value = instantiated_variable.value();
@@ -136,7 +140,7 @@ fn main() {
                 }
 
                 let offset = span.range_in_file.start;
-                match nasm_assemble(replacement_asm.clone()) {
+                match nasm_assemble(&replacement_asm, *start as u64 + span.vaddr as u64) {
                     Ok(mut asm) => {
                         if asm.len() > end - start {
                             warn!("Can't replace pattern as replacement is larger than original!");
@@ -148,7 +152,7 @@ fn main() {
                     }
                     Err(_) => {
                         warn!(
-                            "Failed to assemble replacement: {} (pattern location: 0x{:x})",
+                            "Failed to assemble replacement:\n{}\n(pattern location: 0x{:x})",
                             replacement_asm,
                             span.vaddr + start
                         );
@@ -157,7 +161,7 @@ fn main() {
             }
         }
 
-        if opt.verbose {
+        if opt.verbosity >= 1 {
             println!(
                 "Pattern {} was found {} times and replaced {} times",
                 pattern_n, found, replaced
@@ -191,13 +195,6 @@ fn main() {
 
     fs::write(&output, deobfuscated_binary).unwrap();
     println!("Wrote deobfuscated binary to {}", output.display());
-}
-
-// Can't use keystone as it doesn't support NASM syntax: $ (refers to current assembly position)
-// TODO: this sucks
-fn nasm_assemble(asm: String) -> Result<Vec<u8>, KeystoneError> {
-    // FIXME: actually use nasm (need to create temp file as nasm doesn't have a library version?)
-    pattern_based_deobfuscator::keystone_assemble(asm).map(|result| result.bytes)
 }
 
 struct Span<'a> {

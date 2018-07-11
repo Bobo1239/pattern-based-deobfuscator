@@ -138,6 +138,7 @@ impl Testable for PatternTest {
                             *register,
                         ));
                     }
+                    VariableType::Length => unimplemented!(),
                 }
             }
             vec

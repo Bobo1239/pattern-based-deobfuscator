@@ -139,6 +139,7 @@ impl Variable {
 pub enum VariableType {
     Number,
     Register,
+    Length,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -180,6 +181,13 @@ impl InstructionPattern {
 
     pub fn variables(&self) -> &[Variable] {
         &self.variables
+    }
+
+    pub fn length_variable(&self) -> Option<&Variable> {
+        self.variables
+            .iter()
+            .filter(|var| var.typee() == VariableType::Length)
+            .next()
     }
 
     pub fn unique_register_variables(&self) -> Vec<&Variable> {
@@ -234,6 +242,7 @@ impl InstructionPattern {
                     let variable = pattern.number_variables().next().unwrap();
                     let instance =
                         partial_instance.replace(&variable.to_string(), instantiate_with);
+
                     trace!("instance: {}", instance);
                     match keystone_assemble(instance) {
                         Err(error) => {
@@ -269,6 +278,15 @@ impl InstructionPattern {
                 for (variable, register) in mapped_register_tuple(register_tuple) {
                     instance = instance.replace(&variable.to_string(), register.name());
                 }
+
+                for len_var in pattern
+                    .variables
+                    .iter()
+                    .filter(|var| var.typee() == VariableType::Length)
+                {
+                    instance = instance.replace(&len_var.to_string(), "");
+                }
+
                 match pattern.number_variables().count() {
                     0 => {
                         trace!("instance: {}", instance);
@@ -363,28 +381,29 @@ impl InstructionPattern {
 
 impl FromStr for InstructionPattern {
     type Err = PatternError;
-    fn from_str(s: &str) -> Result<InstructionPattern, PatternError> {
+    fn from_str(pattern: &str) -> Result<InstructionPattern, PatternError> {
         lazy_static! {
             static ref REGEX: Regex = Regex::new(r"\$(\w+):(\w+)").unwrap();
         }
 
-        let mut vec = Vec::new();
-        let captures_iter = REGEX.captures_iter(s);
+        let mut variables = Vec::new();
+        let captures_iter = REGEX.captures_iter(pattern);
         for captures in captures_iter {
             let type_str = &captures[1];
             let name = captures[2].to_string();
             let typee = match type_str {
                 "num" => VariableType::Number,
                 "reg" => VariableType::Register,
+                "len" => VariableType::Length,
                 typee => return Err(PatternError::InvalidVariableType(typee.to_string())),
             };
             let var = Variable { typee, name };
-            vec.push(var);
+            variables.push(var);
         }
 
         Ok(InstructionPattern {
-            pattern: s.to_string(),
-            variables: vec,
+            pattern: pattern.to_string(),
+            variables,
         })
     }
 }
@@ -434,6 +453,7 @@ impl Display for Variable {
             match self.typee {
                 VariableType::Number => "num",
                 VariableType::Register => "reg",
+                VariableType::Length => "len",
             },
             self.name
         )

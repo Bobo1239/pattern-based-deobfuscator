@@ -48,7 +48,11 @@ impl ObfuscationPatternMatcher {
     /// the start position, and the end position
     pub fn match_against(&self, bytes: &[u8]) -> Vec<(Vec<InstantiatedVariable>, usize, usize)> {
         debug!("regex: {}", self.regex.as_str());
-        debug!("match against: {:x?}", bytes);
+        if bytes.len() < 100 {
+            debug!("match against: {:x?}", bytes);
+        } else {
+            debug!("match against: too long...");
+        }
         self.regex
             .captures_iter(bytes)
             .map(|captures| {
@@ -92,7 +96,8 @@ impl ObfuscationPatternMatcher {
                             self.instruction_pattern_matchers[k].capture_group_purposes[i]
                         {
                             trace!("getting capture group {}", i + capture_group_offset);
-                            if captures.get(i + capture_group_offset).is_some() {
+                            if let Some(instruction_match) = captures.get(i + capture_group_offset)
+                            {
                                 // Found the matched encoding; Extract the number variables and return result
 
                                 for j in (i + 1).. {
@@ -111,6 +116,21 @@ impl ObfuscationPatternMatcher {
                                                     InstantiatedVariable::new_register(
                                                         variable_name.to_string(),
                                                         *register,
+                                                    ),
+                                                ) {
+                                                    return None;
+                                                }
+                                            }
+                                            // And add length variable instantiations
+                                            if let Some(length_variable) = self
+                                                .instruction_pattern_matchers[k]
+                                                .pattern
+                                                .length_variable()
+                                            {
+                                                if !instantiated_variables.try_add(
+                                                    InstantiatedVariable::new_length(
+                                                        length_variable.name().to_string(),
+                                                        instruction_match.as_bytes().len(),
                                                     ),
                                                 ) {
                                                     return None;
@@ -253,6 +273,7 @@ enum CaptureGroupPurpose {
 pub enum InstantiatedVariable {
     Number(String, u64),
     Register(String, Register),
+    Length(String, usize),
 }
 
 impl InstantiatedVariable {
@@ -264,10 +285,15 @@ impl InstantiatedVariable {
         InstantiatedVariable::Register(name, value)
     }
 
+    pub fn new_length(name: String, length: usize) -> InstantiatedVariable {
+        InstantiatedVariable::Length(name, length)
+    }
+
     pub fn name(&self) -> &str {
         match self {
-            InstantiatedVariable::Number(name, _) => name,
-            InstantiatedVariable::Register(name, _) => name,
+            InstantiatedVariable::Number(name, _)
+            | InstantiatedVariable::Register(name, _)
+            | InstantiatedVariable::Length(name, _) => name,
         }
     }
 
@@ -275,6 +301,7 @@ impl InstantiatedVariable {
         match self {
             InstantiatedVariable::Number(..) => VariableType::Number,
             InstantiatedVariable::Register(..) => VariableType::Register,
+            InstantiatedVariable::Length(..) => VariableType::Length,
         }
     }
 
@@ -282,6 +309,7 @@ impl InstantiatedVariable {
         match self {
             InstantiatedVariable::Number(name, _) => Variable::new(name, VariableType::Number),
             InstantiatedVariable::Register(name, _) => Variable::new(name, VariableType::Register),
+            InstantiatedVariable::Length(name, _) => Variable::new(name, VariableType::Length),
         }
     }
 
@@ -289,6 +317,7 @@ impl InstantiatedVariable {
         match self {
             InstantiatedVariable::Number(_, number) => format!("0x{:x}", number),
             InstantiatedVariable::Register(_, register) => register.name().to_string(),
+            InstantiatedVariable::Length(_, length) => format!("0x{:x}", length),
         }
     }
 }

@@ -1,9 +1,6 @@
 Short Term
-    Write (better) README
-        mention nightly requirement; also say that this can be lifted once refactoring is done
-        build & usage instruction
-    $offset:name / $len:variable type
     Use nasm for replacement output
+        This is trickier than expected as nasm doesn't have the same "interpret hexadecimal numbers as signed" property as keystone
     Refactor
 
 TODO
