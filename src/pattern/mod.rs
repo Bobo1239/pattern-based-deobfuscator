@@ -246,7 +246,7 @@ impl InstructionPattern {
                     trace!("instance: {}", instance);
                     match keystone_assemble(instance) {
                         Err(error) => {
-                            warn!("assembly failed: {}", error);
+                            trace!("assembly failed: {}", error);
                             Err(PatternError::AssemblyFailed)
                         }
                         Ok(mut encoded) => {
