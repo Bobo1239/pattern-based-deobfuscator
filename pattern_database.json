@@ -1,13 +1,13 @@
 [
   {
     "pattern": [
-      "push rbp",
-      "lea rbp, [rip + $num:offset]",
-      "xchg rbp, [rsp]",
+      "push $reg:r1",
+      "lea $reg:r1, [rip + $num:offset]",
+      "xchg $reg:r1, [rsp]",
       "ret"
     ],
     "replacement": [
-      "push rbp",
+      "push $reg:r1",
       "jmp [rip + $num:offset + 1]"
     ]
   },
@@ -68,6 +68,14 @@
     ],
     "replacement": [
       "ret"
+    ]
+  },
+  {
+    "pattern": [
+      "add $reg:r1, 0xFFFFFFFFFFFFFFF8"
+    ],
+    "replacement": [
+      "sub $reg:r1, 8"
     ]
   }
 ]

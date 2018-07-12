@@ -45,8 +45,7 @@ struct Opt {
 }
 
 fn main() {
-    let env = env_logger::Env::default().filter_or("RUST_LOG", "info");
-    env_logger::init_from_env(env);
+    env_logger::init();
 
     let mut opt = Opt::from_args();
     if opt.output.is_none() {
