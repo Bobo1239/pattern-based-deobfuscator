@@ -26,7 +26,7 @@ impl ObfuscationPatternMatcher {
                 .iter()
                 .map(|ipm| &*ipm.regex)
                 .collect::<Vec<_>>()
-                .join("")
+                .join(r"\x90*") // nop
         );
         debug!("obfuscation pattern regex: {}", regex);
         let regex = Regex::new(&regex).unwrap();

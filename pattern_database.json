@@ -46,5 +46,28 @@
     "replacement": [
       "pop $reg:r1"
     ]
+  },
+  {
+    "pattern": [
+      "add $reg:r, $num:n",
+      "sub $reg:r, $num:n"
+    ],
+    "replacement": []
+  },
+  {
+    "pattern": [
+      "sub $reg:r, $num:n",
+      "add $reg:r, $num:n"
+    ],
+    "replacement": []
+  },
+  {
+    "pattern": [
+      "lea rsp, [rsp + 8]",
+      "jmp [rsp - 8]"
+    ],
+    "replacement": [
+      "ret"
+    ]
   }
 ]
