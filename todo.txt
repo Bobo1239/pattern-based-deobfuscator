@@ -16,9 +16,6 @@ TODO
     Accumulate a pattern database
         extract patterns from research papers
         collect patterns from Arxan sample
-    Multi-Pass
-        only the one kind of NOPs (the shortest) is allowed to be between each instruction pattern
-        add a pattern which translates other kinds of NOP to the one kind
     More comfortable way to work with relative jumps
         find a way so no manually summing instruction lengths is necessary
 
