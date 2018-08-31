@@ -16,8 +16,8 @@ fn main() {
     // lea rbp, qword ptr [rip - 0x1b08b9]
     // -0x1b08b9 = 1111_1111_1110_0100_1111_0111_0100_0111
     // target: 140AB8B0B
-    let instruction =
-        cs.disasm_all(
+    let instruction = cs
+        .disasm_all(
             &[
                 0x48, // 0100_1000 REX.W
                 0x8D, // opcode

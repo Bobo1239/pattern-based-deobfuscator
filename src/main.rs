@@ -1,9 +1,8 @@
 extern crate env_logger;
 extern crate goblin;
-extern crate pattern_based_deobfuscator;
-#[macro_use]
-extern crate structopt;
 extern crate number_prefix;
+extern crate pattern_based_deobfuscator;
+extern crate structopt;
 #[macro_use]
 extern crate log;
 
@@ -20,7 +19,6 @@ use pattern_based_deobfuscator::nasm_assemble;
 use pattern_based_deobfuscator::pattern::*;
 
 #[derive(Debug, StructOpt)]
-#[structopt()]
 struct Opt {
     /// Verbose output
     #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
@@ -58,9 +56,9 @@ fn main() {
         opt.output = Some(opt.input.with_file_name(new_file_name));
     }
 
-    let pattern_database = pattern_based_deobfuscator::load_pattern_database_from_json(
-        opt.pattern_database,
-    ).expect("failed to parse pattern database");
+    let pattern_database =
+        pattern_based_deobfuscator::load_pattern_database_from_json(opt.pattern_database)
+            .expect("failed to parse pattern database");
 
     let buffer = fs::read(&opt.input).unwrap();
     let mut deobfuscated_binary = buffer.clone();

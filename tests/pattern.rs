@@ -4,12 +4,14 @@ extern crate env_logger;
 extern crate log;
 extern crate pattern_based_deobfuscator;
 extern crate quickcheck;
+extern crate rand;
 extern crate regex;
 
 use std::ops::Deref;
 use std::str::FromStr;
 
 use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult, Testable};
+use rand::Rng;
 
 use pattern_based_deobfuscator::keystone_assemble;
 use pattern_based_deobfuscator::pattern::*;
