@@ -37,6 +37,9 @@ These are some limitations which can be removed without too much work:
 
 - Only Windows PE executables can be used as input.
 
+## TODO
+- Consider stuff from [this talk](https://www.youtube.com/watch?v=eunYrrcxXfw)
+
 ## License
 
 Licensed under either of
