@@ -11,7 +11,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult, Testable};
-use rand::Rng;
+use rand::prelude::*;
 
 use pattern_based_deobfuscator::keystone_assemble;
 use pattern_based_deobfuscator::pattern::*;
@@ -176,7 +176,7 @@ impl Testable for PatternTest {
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(enum_variant_names))]
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 enum Number {
     Width8(u8),
@@ -228,7 +228,7 @@ impl Arbitrary for Number {
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(enum_variant_names))]
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq)]
 enum NumberWidth {
     Width8,
@@ -242,7 +242,7 @@ pub struct RegisterWrapper(Register);
 
 impl Arbitrary for RegisterWrapper {
     fn arbitrary<G: Gen>(gen: &mut G) -> RegisterWrapper {
-        RegisterWrapper(*gen.choose(Register::all()).unwrap())
+        RegisterWrapper(*Register::all().choose(gen).unwrap())
     }
 }
 

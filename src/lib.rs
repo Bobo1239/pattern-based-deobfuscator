@@ -33,15 +33,14 @@ use std::io;
 use std::path::Path;
 
 use keystone::Error as KeystoneError;
-use keystone::{Arch, AsmResult, Keystone};
+use keystone::{Arch, AsmResult, Keystone, Mode};
 use parking_lot::Mutex;
 use pattern_database::PatternDatabase;
 
 pub fn keystone_assemble(assembly: String) -> Result<AsmResult, KeystoneError> {
     lazy_static! {
         static ref KEYSTONE: Mutex<Keystone> = Mutex::new(
-            Keystone::new(Arch::X86, keystone::MODE_64)
-                .expect("Failed to initialize Keystone engine")
+            Keystone::new(Arch::X86, Mode::MODE_64).expect("Failed to initialize Keystone engine")
         );
     }
     KEYSTONE.lock().asm(assembly, 0)

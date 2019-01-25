@@ -186,8 +186,7 @@ impl InstructionPattern {
     pub fn length_variable(&self) -> Option<&Variable> {
         self.variables
             .iter()
-            .filter(|var| var.typee() == VariableType::Length)
-            .next()
+            .find(|var| var.typee() == VariableType::Length)
     }
 
     pub fn unique_register_variables(&self) -> Vec<&Variable> {
@@ -216,10 +215,10 @@ impl InstructionPattern {
         ) -> Result<FxHashSet<Encoding>, PatternError> {
             fn detect_intermediate_len(encoded: &[u8]) -> Result<u8, PatternError> {
                 match encoded {
-                    [_.., 0x0F] => Ok(1),
-                    [_.., 0x0F, _] => Ok(2),
-                    [_.., 0x0F, _, _, _] => Ok(4),
-                    [_.., 0x0F, _, _, _, _, _, _, _] => Ok(8),
+                    [.., 0x0F] => Ok(1),
+                    [.., 0x0F, _] => Ok(2),
+                    [.., 0x0F, _, _, _] => Ok(4),
+                    [.., 0x0F, _, _, _, _, _, _, _] => Ok(8),
                     _ => Err(PatternError::DetectionError),
                 }
             }

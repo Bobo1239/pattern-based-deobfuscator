@@ -1,10 +1,10 @@
 extern crate keystone;
 
-use keystone::{Arch, Keystone};
+use keystone::{Arch, Keystone, Mode};
 
 fn main() {
     let engine =
-        Keystone::new(Arch::X86, keystone::MODE_64).expect("Could not initialize Keystone engine");
+        Keystone::new(Arch::X86, Mode::MODE_64).expect("Could not initialize Keystone engine");
 
     let assemble = |asm: &str| {
         println!("assemble: {:x?}", asm);

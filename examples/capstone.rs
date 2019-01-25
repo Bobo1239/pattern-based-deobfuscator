@@ -28,7 +28,8 @@ fn main() {
                 0xFF, // 1111_1111 addr
             ],
             0x1_40C6_93BD,
-        ).unwrap();
+        )
+        .unwrap();
     let instruction = instruction.iter().next().unwrap();
 
     let detail: InsnDetail = cs.insn_detail(&instruction).unwrap();

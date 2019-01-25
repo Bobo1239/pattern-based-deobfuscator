@@ -5,8 +5,7 @@ use std::mem::size_of;
 macro_rules! fn_vec {
     ($name:ident, $orig:ident, $num:ty) => {
         fn $name(n: $num) -> Vec<u8> {
-            let mut vec = Vec::with_capacity(size_of::<$num>());
-            vec.resize(size_of::<$num>(), 0);
+            let mut vec = vec![0; size_of::<$num>()];
             Self::$orig(&mut vec, n);
             vec
         }
