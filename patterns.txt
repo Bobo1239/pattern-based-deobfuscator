@@ -1,0 +1,115 @@
+loc_140B02DD3:
+mov     [rsp+8+var_10], rbp
+lea     rsp, [rsp-8]
+lea     rbp, sub_140C5A59D
+xchg    rbp, [rsp+10h+var_10]
+
+= lea [rsp+8+var_10], sub_140C5A59D
+  sub rsp, 8
+
+push    rbp
+lea     rbp, loc_140AEAFDA
+xchg    rbp, [rsp+18h+var_18]
+retn
+
+= lea [rsp+18h+var_18], loc_140AEAFDA
+  push rbp
+  retn
+
+elias paper patterns
+
+{
+   00007FF7E4E708BC     mov eax, dword ptr [rip - 0xaabae9]
+   00007FF7E4E708C2     imul eax, dword ptr [rip - 0x76843f]
+   00007FF7E4E708C9     mov edx, dword ptr [rip - 0x9c9377]
+   00007FF7E4E708CF     mov dword ptr [rbp + 0x130], edx
+   00007FF7E4E708D5     xor edx, edx
+   00007FF7E4E708D7     mov ecx, dword ptr [rbp + 0x130]
+   00007FF7E4E708DD     div ecx
+   00007FF7E4E708DF     mov dword ptr [rip - 0xaabb0c], edx
+   00007FF7E4E708E5     mov eax, dword ptr [rip - 0xaabb12]
+   00007FF7E4E708EB     mov edx, dword ptr [rip - 0x9c0da8]
+   00007FF7E4E708F1     cmp eax, edx
+   00007FF7E4E708F3     push rbp
+   00007FF7E4E708F4     movabs rbp, 0x7ff7e4e31702
+   00007FF7E4E708FE     xchg qword ptr [rsp], rbp
+   00007FF7E4E70902     push rdx
+   00007FF7E4E70903     push rbx
+   00007FF7E4E70904     mov rdx, qword ptr [rsp + 0x10]
+   00007FF7E4E70909     movabs rbx, 0x7ff7e50bb8ed
+   00007FF7E4E70913     cmovbe rdx, rbx
+   00007FF7E4E70917     mov qword ptr [rsp + 0x10], rdx
+   00007FF7E4E7091C     pop rbx
+   00007FF7E4E7091D     pop rdx
+   00007FF7E4E7091E     ret
+}
+{
+   00007FF7E4EBB2E8     mov eax, dword ptr [rip - 0xa0bbe5]
+   00007FF7E4EBB2EE     imul eax, dword ptr [rip - 0x7d081c]
+   00007FF7E4EBB2F5     mov edx, dword ptr [rip - 0x7fc452]
+   00007FF7E4EBB2FB     mov dword ptr [rbp + 0x130], edx
+   00007FF7E4EBB301     xor edx, edx
+   00007FF7E4EBB303     mov ecx, dword ptr [rbp + 0x130]
+   00007FF7E4EBB309     div ecx
+   00007FF7E4EBB30B     mov dword ptr [rip - 0xa0bc08], edx
+   00007FF7E4EBB311     mov eax, dword ptr [rip - 0xa0bc0e]
+   00007FF7E4EBB317     mov edx, dword ptr [rip - 0x858f44]
+   00007FF7E4EBB31D     cmp eax, edx
+   00007FF7E4EBB31F     push rbp
+   00007FF7E4EBB320     movabs rbp, 0x7ff7e4f28909
+   00007FF7E4EBB32A     xchg qword ptr [rsp], rbp
+   00007FF7E4EBB32E     push rcx
+   00007FF7E4EBB32F     push rdx
+   00007FF7E4EBB330     mov rcx, qword ptr [rsp + 0x10]
+   00007FF7E4EBB335     movabs rdx, 0x7ff7e4fa66af
+   00007FF7E4EBB33F     cmovbe rcx, rdx
+   00007FF7E4EBB343     mov qword ptr [rsp + 0x10], rcx
+   00007FF7E4EBB348     pop rdx
+   00007FF7E4EBB349     pop rcx
+   00007FF7E4EBB34A     ret
+}
+
+
+
+
+
+
+
+
+
+
+   00007FF7E43A3565     mov eax, dword ptr [rip + 0x10c19e]
+   00007FF7E43A356B     jmp 0x7ff7e4ffea4a
+
+   00007FF7E4FFEA4A     test eax, eax
+   00007FF7E4FFEA4C     mov qword ptr [rsp - 8], rbp
+   00007FF7E4FFEA51     jmp 0x7ff7e50c0b22
+
+   00007FF7E50C0B22     lea rsp, qword ptr [rsp - 8]
+   00007FF7E50C0B27     movabs rbp, 0x7ff7e44a0584
+   00007FF7E50C0B31     jmp 0x7ff7e500ae41
+
+   00007FF7E500AE41     xchg qword ptr [rsp], rbp
+   00007FF7E500AE45     lea rsp, qword ptr [rsp - 8]
+   00007FF7E500AE4A     mov qword ptr [rsp], rbx
+   00007FF7E500AE4E     mov qword ptr [rsp - 8], rax
+   00007FF7E500AE53     jmp 0x7ff7e4e723b8
+
+   00007FF7E4E723B8     lea rsp, qword ptr [rsp - 8]
+   00007FF7E4E723BD     mov rbx, qword ptr [rsp + 0x10]
+   00007FF7E4E723C2     movabs rax, 0x7ff7e4ebb2e8
+   00007FF7E4E723CC     cmovne rbx, rax
+   00007FF7E4E723D0     jmp 0x7ff7e50b084a
+
+   00007FF7E50B084A     mov qword ptr [rsp + 0x10], rbx
+   00007FF7E50B084F     jmp 0x7ff7e50205f8
+
+   00007FF7E50205F8     mov rax, qword ptr [rsp]
+   00007FF7E50205FC     lea rsp, qword ptr [rsp + 8]
+   00007FF7E5020601     mov rbx, qword ptr [rsp]
+   00007FF7E5020605     lea rsp, qword ptr [rsp + 8]
+   00007FF7E502060A     jmp 0x7ff7e4650c11
+
+   00007FF7E4650C11     lea rsp, qword ptr [rsp + 8]
+   00007FF7E4650C16     jmp qword ptr [rsp - 8]
+

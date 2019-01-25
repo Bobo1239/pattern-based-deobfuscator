@@ -1,4 +1,6 @@
-use pattern::ObfuscationPattern;
+use crate::pattern::ObfuscationPattern;
+
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PatternDatabase(Vec<ObfuscationPattern>);
@@ -13,9 +15,7 @@ impl PatternDatabase {
 mod tests {
     use super::*;
 
-    use serde_json;
-
-    use pattern::*;
+    use crate::pattern::*;
 
     #[test]
     fn serialization_roundtrip() {

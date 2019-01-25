@@ -1,6 +1,6 @@
 use regex::bytes::Regex;
 
-use pattern::*;
+use crate::pattern::*;
 
 #[derive(Debug, Clone)]
 pub struct ObfuscationPatternMatcher {

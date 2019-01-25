@@ -132,7 +132,7 @@ impl Testable for PatternTest {
                         ));
                     }
                     VariableType::Register => {
-                        let mut register = RegisterWrapper::arbitrary(gen);
+                        let register = RegisterWrapper::arbitrary(gen);
                         instance =
                             instance.replace(&format!("$reg:{}", variable.name()), register.name());
                         vec.push(InstantiatedVariable::new_register(

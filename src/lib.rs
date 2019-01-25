@@ -1,27 +1,5 @@
 #![feature(slice_patterns, nll)]
 
-extern crate goblin;
-extern crate keystone;
-#[macro_use]
-extern crate lazy_static;
-extern crate byteorder;
-#[macro_use]
-extern crate log;
-extern crate failure;
-extern crate regex;
-#[macro_use]
-extern crate failure_derive;
-extern crate fxhash;
-extern crate parking_lot;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate tempfile;
-
-#[cfg(test)]
-extern crate env_logger;
-
 pub mod byteorder_ext;
 pub mod pattern;
 pub mod pattern_database;
@@ -34,7 +12,9 @@ use std::path::Path;
 
 use keystone::Error as KeystoneError;
 use keystone::{Arch, AsmResult, Keystone, Mode};
+use lazy_static::lazy_static;
 use parking_lot::Mutex;
+
 use pattern_database::PatternDatabase;
 
 pub fn keystone_assemble(assembly: String) -> Result<AsmResult, KeystoneError> {

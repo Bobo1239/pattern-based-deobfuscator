@@ -4,13 +4,17 @@ use std::fmt::{self, Display};
 use std::hash::Hash;
 use std::str::FromStr;
 
+use failure::Fail;
 use fxhash::FxHashSet;
-use keystone_assemble;
+use lazy_static::lazy_static;
+use log::*;
 use regex::Regex;
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_derive::{Deserialize, Serialize};
 
 pub use self::matcher::*;
+use crate::keystone_assemble;
 
 #[derive(Debug, Fail, PartialEq, Eq, Hash)]
 pub enum PatternError {
