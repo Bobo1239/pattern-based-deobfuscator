@@ -1,29 +1,32 @@
 trigger:
-- master
+  - master
 
 resources:
   containers:
-  - container: debian-stretch
-    image: debian:stretch
-  - container: debian-buster
-    image: debian:buster
+    - container: debian-stretch
+      image: debian:stretch
+    - container: debian-buster
+      image: debian:buster
 
 jobs:
-- job: test
-  pool:
-    vmImage: 'Ubuntu 16.04'
-  strategy:
-    matrix:
-      stretch:
-        containerResource: debian-stretch
-      buster:
-        containerResource: debian-buster
-  container: $[ variables['containerResource'] ]
-  steps:
-    - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-      displayName: 'Install rustc'
-    - script: |
-        export PATH=$PATH:$HOME/.cargo/bin
-        cc -v
-        cargo test
-      displayName: 'cargo test'
+  - job: test
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    strategy:
+      matrix:
+        stretch:
+          containerResource: debian-stretch
+        buster:
+          containerResource: debian-buster
+    container: $[ variables['containerResource'] ]
+    steps:
+      - script: |
+        sudo apt-get install -y curl gcc
+        displayName: 'Install dependencies'
+      - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+        displayName: 'Install rustc'
+      - script: |
+          export PATH=$PATH:$HOME/.cargo/bin
+          cc -v
+          cargo test
+        displayName: 'cargo test'
