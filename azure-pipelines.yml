@@ -5,10 +5,10 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 steps:
-- displayName: 'Install rustc'
-  script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+- script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+  displayName: 'Install rustc'
 
-- displayName: 'cargo test'
-  script: |
+- script: |
     export PATH=$PATH:$HOME/.cargo/bin
     cargo test
+  displayName: 'cargo test'
