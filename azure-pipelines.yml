@@ -18,8 +18,7 @@ jobs:
           containerResource: debian-stretch
         buster:
           containerResource: debian-buster
-    container:
-      image: $[ variables['containerResource'] ]
+    container: $[ variables['containerResource'] ]
       options: -u root
     steps:
       - script: apt-get install -y curl gcc
