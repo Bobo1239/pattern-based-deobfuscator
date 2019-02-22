@@ -5,8 +5,10 @@ resources:
   containers:
     - container: debian-stretch
       image: debian:stretch
+      options: -u root
     - container: debian-buster
       image: debian:buster
+      options: -u root
 
 jobs:
   - job: test
@@ -19,7 +21,6 @@ jobs:
         buster:
           containerResource: debian-buster
     container: $[ variables['containerResource'] ]
-      options: -u root
     steps:
       - script: apt-get install -y curl gcc
         displayName: 'Install dependencies'
