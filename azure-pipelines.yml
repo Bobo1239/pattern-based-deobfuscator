@@ -12,6 +12,8 @@ steps:
     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     sudo apt-get update -y
     sudo apt-get install -y gcc-8 g++-8
+    sudo update-alternatives --set gcc /usr/bin/gcc-8
+    sudo update-alternatives --set g++ /usr/bin/g++-8
   displayName: 'Install gcc'
 
 - script: |
