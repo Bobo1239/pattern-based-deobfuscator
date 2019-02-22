@@ -20,7 +20,7 @@ jobs:
           containerResource: debian-buster
     container: $[ variables['containerResource'] ]
     steps:
-      - script: sudo apt-get install -y curl gcc
+      - script: apt-get install -y curl gcc
         displayName: 'Install dependencies'
       - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
         displayName: 'Install rustc'
