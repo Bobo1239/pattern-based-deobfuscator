@@ -14,10 +14,10 @@ jobs:
     vmImage: 'Ubuntu 16.04'
   strategy:
     matrix:
-      jessie:
-        containerResource: debian-jessie
       stretch:
         containerResource: debian-stretch
+      buster:
+        containerResource: debian-buster
   container: $[ variables['containerResource'] ]
   steps:
     - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
