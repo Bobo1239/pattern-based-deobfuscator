@@ -18,6 +18,7 @@ steps:
 
 - script: |
     export PATH=$PATH:$HOME/.cargo/bin
+    export CC=g++
     cc -v
     cargo test
   displayName: 'cargo test'
