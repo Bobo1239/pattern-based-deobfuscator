@@ -6,12 +6,6 @@ jobs:
       - image: circleci/rust:latest
     steps:
       - checkout
-      - run:
-          name: Install rustc
-          command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-      - run:
-          name: Install build tools
-          command: sudo apt install cmake
-      - run:
-          name: Test
-          command: cargo test
+      - run: sudo apt install cmake
+      - run: rustup default nightly
+      - run: cargo test
