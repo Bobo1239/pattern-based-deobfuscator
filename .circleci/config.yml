@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  "Build and test":
+  build:
     docker:
       - image: 1.32.0-stretch
     steps:
