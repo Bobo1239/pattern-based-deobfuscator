@@ -1,23 +1,14 @@
 version: 2.1
 
-shared: &shared
-  steps:
-    - checkout
-    - run:
-        name: Install rustc
-        command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-    - run:
-        name: Test
-        command: cargo test
-
 jobs:
-  "debian-stretch":
-    <<: *shared
+  "Build and test":
     docker:
-      - image: debian:stretch
-
-workflows:
-  version: 2
-  build:
-    jobs:
-      - "debian-stretch"
+      - image: 1.32.0-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install rustc
+          command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+      - run:
+          name: Test
+          command: cargo test
