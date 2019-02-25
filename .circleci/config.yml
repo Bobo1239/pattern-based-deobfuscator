@@ -2,10 +2,10 @@ version: 2.1
 
 shared: &shared
   steps:
+    - checkout
     - run:
       name: Install rustc
       command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-    - checkout
     - run:
       name: Test
       command: cargo test
