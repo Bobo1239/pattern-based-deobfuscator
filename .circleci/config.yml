@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: 1.32.0-stretch
+      - image: circleci/rust:latest
     steps:
       - checkout
       - run:
