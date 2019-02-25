@@ -6,15 +6,10 @@ jobs:
       - image: circleci/rust:latest
     steps:
       - checkout
-      - run: uname -a
       - run:
           name: Setup C/C++ toolchain
           command: |
-            sudo apt-get install software-properties-common
-            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
             sudo apt-get update -y
-            sudo apt-get install -y gcc-8 g++-8 cmake
-            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-            sudo update-alternatives --set gcc /usr/bin/gcc-8
+            sudo apt-get upgrade -y
       - run: rustup default nightly
       - run: cargo test
