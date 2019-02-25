@@ -11,5 +11,6 @@ jobs:
           command: |
             sudo apt-get update -y
             sudo apt-get upgrade -y
+            sudo apt-get install cmake -y
       - run: rustup default nightly
       - run: cargo test
