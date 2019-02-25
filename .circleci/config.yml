@@ -6,6 +6,7 @@ jobs:
       - image: circleci/rust:latest
     steps:
       - checkout
+      - run: uname -a
       - run:
           name: Setup C/C++ toolchain
           command: |
