@@ -4,11 +4,11 @@ shared: &shared
   steps:
     - checkout
     - run:
-      name: Install rustc
-      command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+        name: Install rustc
+        command: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
     - run:
-      name: Test
-      command: cargo test
+        name: Test
+        command: cargo test
 
 jobs:
   "debian-stretch":
