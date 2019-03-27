@@ -1,8 +1,5 @@
-extern crate env_logger;
-extern crate goblin;
-extern crate number_prefix;
-extern crate pattern_based_deobfuscator;
-extern crate structopt;
+#![warn(rust_2018_idioms)]
+
 #[macro_use]
 extern crate log;
 
@@ -12,7 +9,7 @@ use std::path::PathBuf;
 
 use goblin::pe::PE;
 use goblin::Object;
-use number_prefix::{Prefixed, Standalone};
+use number_prefix::NumberPrefix;
 use structopt::StructOpt;
 
 use pattern_based_deobfuscator::nasm_assemble;
@@ -76,11 +73,11 @@ fn main() {
         pattern_database.patterns().len()
     );
 
-    let code_size = match number_prefix::binary_prefix(
+    let code_size = match NumberPrefix::binary(
         spans.iter().map(|span| span.code.len()).sum::<usize>() as f64,
     ) {
-        Standalone(bytes) => format!("{} bytes", bytes),
-        Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
+        NumberPrefix::Standalone(bytes) => format!("{} bytes", bytes),
+        NumberPrefix::Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
     };
 
     println!("Combined length of code sections: {}", code_size);
@@ -132,7 +129,7 @@ fn main() {
                     let mut replacement_asm = pattern
                         .replacement()
                         .iter()
-                        .map(|isn_pat| isn_pat.pattern())
+                        .map(InstructionPattern::pattern)
                         .collect::<Vec<_>>()
                         .join("\n");
 
@@ -230,7 +227,7 @@ struct Span {
     code: Vec<u8>,
 }
 
-fn get_code_segments<'a>(pe: PE, buffer: &'a [u8]) -> Vec<Span> {
+fn get_code_segments<'a>(pe: PE<'_>, buffer: &'a [u8]) -> Vec<Span> {
     use goblin::pe::section_table::IMAGE_SCN_CNT_CODE;
 
     // println!("{:?}", pe.entry);

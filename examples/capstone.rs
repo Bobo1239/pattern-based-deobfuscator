@@ -1,5 +1,3 @@
-extern crate capstone;
-
 use capstone::arch::{ArchDetail, BuildsCapstone, BuildsCapstoneSyntax};
 use capstone::prelude::*;
 use capstone::InsnDetail;

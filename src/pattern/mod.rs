@@ -430,7 +430,7 @@ impl<'de> Deserialize<'de> for InstructionPattern {
         impl<'de> Visitor<'de> for InstructionPatternVisitor {
             type Value = InstructionPattern;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("a valid instruction pattern")
             }
 
@@ -449,7 +449,7 @@ impl<'de> Deserialize<'de> for InstructionPattern {
 }
 
 impl Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "${}:{}",
