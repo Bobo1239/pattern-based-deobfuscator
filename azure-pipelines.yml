@@ -5,19 +5,11 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 steps:
-- script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  displayName: 'Install rustc'
-
-# - script: |
-#     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-#     sudo apt-get update -y
-#     sudo apt-get install -y gcc-8 g++-8
-#     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-#     sudo update-alternatives --set gcc /usr/bin/gcc-8
-#   displayName: 'Install gcc'
-
 - script: |
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
     export PATH=$PATH:$HOME/.cargo/bin
-    cc -v
-    cargo test
+  displayName: 'Install rustc'
+- script: cargo build
+  displayName: 'cargo build'
+- script: cargo test
   displayName: 'cargo test'
