@@ -1,8 +1,5 @@
-extern crate env_logger;
-extern crate goblin;
-extern crate number_prefix;
-extern crate pattern_based_deobfuscator;
-extern crate structopt;
+#![warn(rust_2018_idioms)]
+
 #[macro_use]
 extern crate log;
 
@@ -230,7 +227,7 @@ struct Span {
     code: Vec<u8>,
 }
 
-fn get_code_segments<'a>(pe: PE, buffer: &'a [u8]) -> Vec<Span> {
+fn get_code_segments<'a>(pe: PE<'_>, buffer: &'a [u8]) -> Vec<Span> {
     use goblin::pe::section_table::IMAGE_SCN_CNT_CODE;
 
     // println!("{:?}", pe.entry);

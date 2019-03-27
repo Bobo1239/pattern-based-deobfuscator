@@ -1,4 +1,5 @@
 #![feature(slice_patterns, nll)]
+#![warn(rust_2018_idioms)]
 
 pub mod byteorder_ext;
 pub mod pattern;
@@ -73,14 +74,14 @@ pub fn nasm_assemble(asm: &str, _origin: u64) -> Result<Vec<u8>, io::Error> {
 struct NasmFailed;
 impl Error for NasmFailed {}
 impl fmt::Display for NasmFailed {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "nasm assembly failed")
     }
 }
 
 pub fn load_pattern_database_from_json<P: AsRef<Path>>(
     path: P,
-) -> Result<PatternDatabase, Box<Error>> {
+) -> Result<PatternDatabase, Box<dyn Error>> {
     let file = File::open(path)?;
     let db = serde_json::from_reader(file)?;
     Ok(db)
@@ -92,6 +93,6 @@ fn init_logger() {
     env_logger::Builder::new()
         .target(env_logger::Target::Stdout)
         .default_format_timestamp(false)
-        .parse("trace")
+        .parse_filters("trace")
         .init();
 }

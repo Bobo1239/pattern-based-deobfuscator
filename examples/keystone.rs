@@ -1,5 +1,3 @@
-extern crate keystone;
-
 use keystone::{Arch, Keystone, Mode};
 
 fn main() {
