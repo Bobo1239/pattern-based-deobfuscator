@@ -7,7 +7,7 @@ pool:
 steps:
 - script: |
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-    source ~/.cargo/env
+    echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
   displayName: 'Install rustc'
 - script: cargo build
   displayName: 'cargo build'
