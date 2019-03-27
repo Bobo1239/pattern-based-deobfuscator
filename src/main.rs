@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 use goblin::pe::PE;
 use goblin::Object;
-use number_prefix::{Prefixed, Standalone};
+use number_prefix::NumberPrefix;
 use structopt::StructOpt;
 
 use pattern_based_deobfuscator::nasm_assemble;
@@ -76,11 +76,11 @@ fn main() {
         pattern_database.patterns().len()
     );
 
-    let code_size = match number_prefix::binary_prefix(
+    let code_size = match NumberPrefix::binary(
         spans.iter().map(|span| span.code.len()).sum::<usize>() as f64,
     ) {
-        Standalone(bytes) => format!("{} bytes", bytes),
-        Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
+        NumberPrefix::Standalone(bytes) => format!("{} bytes", bytes),
+        NumberPrefix::Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
     };
 
     println!("Combined length of code sections: {}", code_size);
@@ -132,7 +132,7 @@ fn main() {
                     let mut replacement_asm = pattern
                         .replacement()
                         .iter()
-                        .map(|isn_pat| isn_pat.pattern())
+                        .map(InstructionPattern::pattern)
                         .collect::<Vec<_>>()
                         .join("\n");
 
