@@ -7,6 +7,7 @@ use std::fs;
 use std::ops::Range;
 use std::path::PathBuf;
 
+use goblin::elf::Elf;
 use goblin::pe::PE;
 use goblin::Object;
 use number_prefix::NumberPrefix;
@@ -60,8 +61,9 @@ fn main() {
     let buffer = fs::read(&opt.input).unwrap();
     let mut deobfuscated_binary = buffer.clone();
     let mut spans = match Object::parse(&buffer).unwrap() {
-        Object::PE(pe) => get_code_segments(pe, &buffer),
-        Object::Elf(_) | Object::Mach(_) | Object::Archive(_) => {
+        Object::PE(pe) => get_pe_code_segments(pe, &buffer),
+        Object::Elf(elf) => get_elf_code_segments(elf, &buffer),
+        Object::Mach(_) | Object::Archive(_) => {
             unimplemented!("Only PE files are supported atm!");
         }
         Object::Unknown(magic) => panic!("unknown magic: {:#x}", magic),
@@ -227,7 +229,7 @@ struct Span {
     code: Vec<u8>,
 }
 
-fn get_code_segments<'a>(pe: PE<'_>, buffer: &'a [u8]) -> Vec<Span> {
+fn get_pe_code_segments<'a>(pe: PE<'_>, buffer: &'a [u8]) -> Vec<Span> {
     use goblin::pe::section_table::IMAGE_SCN_CNT_CODE;
 
     // println!("{:?}", pe.entry);
@@ -248,6 +250,22 @@ fn get_code_segments<'a>(pe: PE<'_>, buffer: &'a [u8]) -> Vec<Span> {
                 range_in_file,
                 code: code.to_vec(),
                 vaddr: section.virtual_address as usize + pe.image_base,
+            })
+        }
+    }
+    vec
+}
+
+fn get_elf_code_segments<'a>(elf: Elf<'_>, buffer: &'a [u8]) -> Vec<Span> {
+    let mut vec = Vec::new();
+    for ph in elf.program_headers {
+        if ph.p_type == goblin::elf::program_header::PT_LOAD {
+            let range_in_file = ph.p_offset as usize..(ph.p_offset + ph.p_filesz) as usize;
+            let code = &buffer[range_in_file.clone()];
+            vec.push(Span {
+                range_in_file,
+                code: code.to_vec(),
+                vaddr: ph.p_vaddr as usize,
             })
         }
     }

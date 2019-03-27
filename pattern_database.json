@@ -77,5 +77,24 @@
     "replacement": [
       "sub $reg:r1, 8"
     ]
+  },
+  {
+    "pattern": [
+        "movsxd  rdx, [rip + $num:off1]",
+        "mov     rax, [rip + $num:off2]",
+        "sub     rax, rdx",
+        "call    rax"
+    ],
+    "replacement": [
+      "nop"
+    ]
+  },
+  {
+    "pattern": [
+        "call    rcx"
+    ],
+    "replacement": [
+      "nop"
+    ]
   }
 ]
