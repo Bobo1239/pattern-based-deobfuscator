@@ -1,5 +1,7 @@
 # PBD: Pattern-Based Deobfuscator
 
+[![Build Status](https://dev.azure.com/bobo1239/Pattern-Based%20Deobfuscator/_apis/build/status/Bobo1239.pattern-based-deobfuscator?branchName=master)](https://dev.azure.com/bobo1239/Pattern-Based%20Deobfuscator/_build/latest?definitionId=1&branchName=master)
+
 TODO: Description
 
 ## Compilation
