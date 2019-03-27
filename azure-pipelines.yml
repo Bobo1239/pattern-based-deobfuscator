@@ -8,13 +8,13 @@ steps:
 - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
   displayName: 'Install rustc'
 
-- script: |
-    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    sudo apt-get update -y
-    sudo apt-get install -y gcc-8 g++-8
-    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-    sudo update-alternatives --set gcc /usr/bin/gcc-8
-  displayName: 'Install gcc'
+# - script: |
+#     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+#     sudo apt-get update -y
+#     sudo apt-get install -y gcc-8 g++-8
+#     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+#     sudo update-alternatives --set gcc /usr/bin/gcc-8
+#   displayName: 'Install gcc'
 
 - script: |
     export PATH=$PATH:$HOME/.cargo/bin
